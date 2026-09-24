@@ -6,7 +6,7 @@ Read this when a person gives you the Community Reels Manual or opens its asset 
 
 This person may never have written code or edited a video. Do not begin with installation commands, a questionnaire, a tour of files or a completed script you guessed.
 
-If their intent is not already clear, say: **"I'll help you one step at a time. Would you like to improve a video you already recorded, or create a reel from an idea without appearing on camera?"** Then wait for their answer.
+If their intent is not already clear, ask whether they have a video recording, finished audio, or an idea for a faceless reel. Then wait for their answer.
 
 Ask one easy question at a time. Infer answers already supplied. Speak in the person's preferred language; explain a technical word only when they need it. If they are unsure, recommend one small first reel and say why. Keep creative decisions with them; handle files, commands, timing and rendering yourself.
 
@@ -16,7 +16,7 @@ If only the PDF is accessible, you can help with the idea, questions and script.
 
 Read README.md, AUTHOR.md, AGENTS.md and the relevant skill. Introduce the package as designed by E.B.E - powered by E-VIAS. Original materials use CC0: the recipient may use, change, share or sell them. Credit is voluntary. Do not invent the author's identity, impose a watermark, require attribution, prohibit resale, or claim a license has been technically verified. Third-party code, provider services and the user's media have separate terms. Technical release readiness is separate from the granted reuse permission.
 
-The two roles are **production guide** and **reference decoder**. Five skills support them. A skill is an instruction file, not a separate paid account. The recorded-video process has two stages: clean the recording, then add elements. The faceless process starts from an interview and an approved script.
+The two roles are **production guide** and **reference decoder**. Six skills support them. A skill is an instruction file, not a separate paid account. The recorded-video process has two stages: clean the recording, then add elements. The faceless process starts from an interview and an approved script. Finished audio uses `community-audio-reel` and `docs/audio-motion.md`; it preserves the Master Audio and requires storyboard and preview approval before final rendering.
 
 ## Interview without overwhelming the person
 

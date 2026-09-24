@@ -19,6 +19,12 @@ from reelkit.core import (latinize, normalize_times, ROOT, approval_valid, diges
                           validate_plan, video_filter)
 from reelkit import gemini
 from reelkit.composition import STYLES, build
+from reelkit.motion_audio import intake_audio, set_transcript, verify_master
+from reelkit.motion_storyboard import import_storyboard, approve_storyboard, storyboard_approval_valid
+from reelkit.motion_design import import_motion_plan
+from reelkit.motion_composition import build_motion_composition
+from reelkit.motion_resources import import_resource, load_manifest
+from reelkit.motion_render import render_preview, approve_preview, render_final
 
 
 def setup_key(args):
@@ -185,6 +191,87 @@ def story(args):
     print("Story review master ready. The plain background is intentional. Review the narration and captions before approval and faceless animation.")
 
 
+def audio_intake(args):
+    p = intake_audio(args.audio, args.name, args.script, args.transcript)
+    print("Motion-Only Master Audio preserved in", p)
+    print("The source audio was copied unchanged. Add and review a semantic storyboard before approval.")
+
+
+def audio_transcript(args):
+    p = project(args.name)
+    result = set_transcript(p, args.script, args.transcript)
+    print("Saved", result["source"], "input. Script-only timing remains unverified.")
+
+
+def audio_storyboard(args):
+    target = import_storyboard(project(args.name), args.file)
+    print("Validated semantic storyboard:", target)
+
+
+def audio_storyboard_approve(args):
+    approve_storyboard(project(args.name), args.by)
+    print("Recorded creator storyboard approval. Preview and render are later milestones.")
+
+
+def audio_status(args):
+    p = project(args.name)
+    master, state = verify_master(p)
+    status = "not approved"
+    if (p / "storyboard-approval.json").exists():
+        try:
+            storyboard_approval_valid(p)
+            status = "current"
+        except (ValueError, FileNotFoundError, KeyError):
+            status = "stale; review and approve again"
+    print("Mode:", state["mode"])
+    print("Master Audio:", master.name, "SHA-256", state["master_audio"]["sha256"])
+    print("Duration:", state["duration"], "seconds")
+    print("Render derivative:", state["render_audio"] or "not created")
+    print("Transcript:", state["transcript_status"])
+    print("Storyboard approval:", status)
+
+
+def audio_plan(args):
+    target = import_motion_plan(project(args.name), args.file)
+    print("Validated visual motion plan:", target)
+
+
+def audio_compose(args):
+    target = build_motion_composition(project(args.name))
+    print("Built seekable Motion-Only composition:", target)
+
+
+def resource_import(args):
+    item = import_resource(args.file, ident=args.id, category=args.category, tags=args.tags or [],
+                           license=args.license, origin=args.source, safety=args.safety,
+                           visual_energy=args.energy, compatible_scenes=args.scene or [], loopable=args.loopable,
+                           safe_for_motion_only=args.motion_only_safe if args.motion_only_safe else None)
+    print("Registered resource:", item["id"], "—", item["path"])
+    if not item["render_ready"]:
+        print("Metadata registered; this format needs a compatibility adapter before composition placement.")
+
+
+def resource_list(_args):
+    for item in load_manifest()["resources"]:
+        print(item["id"], item["type"], item["category"], item["safety"], item["path"])
+
+
+def audio_preview(args):
+    path = render_preview(project(args.name), args.workers)
+    print("Review Motion-Only preview:", path)
+
+
+def audio_preview_approve(args):
+    approve_preview(project(args.name), args.file, args.by)
+    print("Recorded creator preview approval.")
+
+
+def audio_final(args):
+    path = render_final(project(args.name), args.workers)
+    print("Rendered and verified Motion-Only final:", path)
+    print("Final creator playback remains required before publication.")
+
+
 def verify_video(path, expected):
     info=probe(path)
     v=next(s for s in info["streams"] if s["codec_type"]=="video")
@@ -304,6 +391,35 @@ def main():
     voice=s.add_mutually_exclusive_group(required=True)
     voice.add_argument("--audio");voice.add_argument("--silent",action="store_true")
     s.set_defaults(func=story)
+    s=commands.add_parser("audio-intake",help="Create a Motion-Only project without changing the supplied Master Audio")
+    s.add_argument("audio");s.add_argument("--name",required=True)
+    s.add_argument("--script");s.add_argument("--transcript");s.set_defaults(func=audio_intake)
+    s=commands.add_parser("audio-transcript",help="Add a script or timed transcript to a Motion-Only project")
+    s.add_argument("name");s.add_argument("--script");s.add_argument("--transcript");s.set_defaults(func=audio_transcript)
+    s=commands.add_parser("audio-storyboard",help="Validate and save a semantic Motion-Only storyboard")
+    s.add_argument("name");s.add_argument("--file",required=True);s.set_defaults(func=audio_storyboard)
+    s=commands.add_parser("approve-storyboard",help="Record actual creator approval of a Motion-Only storyboard")
+    s.add_argument("name");s.add_argument("--by",required=True);s.set_defaults(func=audio_storyboard_approve)
+    s=commands.add_parser("audio-status",help="Inspect Master Audio integrity and storyboard approval")
+    s.add_argument("name");s.set_defaults(func=audio_status)
+    s=commands.add_parser("audio-plan",help="Validate and save a visual plan for an approved storyboard")
+    s.add_argument("name");s.add_argument("--file",required=True);s.set_defaults(func=audio_plan)
+    s=commands.add_parser("audio-compose",help="Build the seekable Motion-Only picture composition")
+    s.add_argument("name");s.set_defaults(func=audio_compose)
+    s=commands.add_parser("import-resource",help="Inspect and register one local motion resource")
+    s.add_argument("file");s.add_argument("--id",required=True);s.add_argument("--category",required=True)
+    s.add_argument("--tag",dest="tags",action="append");s.add_argument("--license",required=True)
+    s.add_argument("--source",required=True);s.add_argument("--safety",choices=("unreviewed","approved","blocked"),default="unreviewed")
+    s.add_argument("--energy",choices=("calm","balanced","energetic"),default="balanced")
+    s.add_argument("--scene",action="append");s.add_argument("--loopable",action="store_true");s.set_defaults(func=resource_import)
+    s.add_argument("--motion-only-safe",action="store_true",help="Manually mark a reviewed video/image as appropriate for Motion-Only use")
+    commands.add_parser("list-resources",help="List registered local resources").set_defaults(func=resource_list)
+    s=commands.add_parser("audio-preview",help="Render a draft Motion-Only preview with the approved Master Audio derivative")
+    s.add_argument("name");s.add_argument("--workers",type=int,choices=range(1,5),default=1);s.set_defaults(func=audio_preview)
+    s=commands.add_parser("approve-preview",help="Record actual creator approval of a Motion-Only preview")
+    s.add_argument("name");s.add_argument("--file",required=True);s.add_argument("--by",required=True);s.set_defaults(func=audio_preview_approve)
+    s=commands.add_parser("audio-final",help="Render a final Motion-Only video after preview approval")
+    s.add_argument("name");s.add_argument("--workers",type=int,choices=range(1,5),default=1);s.set_defaults(func=audio_final)
     for name in ("analyze","decode","review"):
         s=commands.add_parser(name,help={"analyze":"Gemini understands a raw recording","decode":"Gemini explains a reference's style","review":"Gemini reviews the finished video"}[name])
         s.add_argument("name");s.add_argument("--allow-upload",action="store_true");s.add_argument("--budget-usd",type=float,default=.5)

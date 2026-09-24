@@ -1,13 +1,15 @@
 ---
 name: community-reels
-description: Guide a beginner through the Community Reels Engine using a short conversation. Use for cleaning an existing recording or developing a faceless reel from an idea; do not use to publish or manage unrelated projects.
+description: Guide a beginner through the Community Reels Engine using a short conversation. Route recordings, finished-audio Motion-Only reels, and faceless ideas to their respective workflows; do not use to publish or manage unrelated projects.
 ---
 
 # Start with the person
 
-Read `docs/ASSISTANT-PLAYBOOK.md` and the root README. Resolve these from the package root, three directories above this skill. Ask one useful question at a time. First establish whether they already have a recording or want a faceless reel from an idea. Infer what is already clear; never make them repeat answers. Handle technical work yourself, explaining only the action they need to take next.
+Read `docs/ASSISTANT-PLAYBOOK.md` and the root README. Resolve these from the package root, three directories above this skill. Ask one useful question at a time. Establish whether they have a video recording, finished audio, or an idea for a faceless reel. Infer what is already clear; never make them repeat answers. Handle technical work yourself, explaining only the action they need to take next.
 
 For recordings, read `docs/workflow.md`, run `doctor`, then `prepare` with a new name. For a faceless idea, read `docs/faceless.md`, collect the brief, show the script and scenes, and agree the voice route before generating anything. The supplied `story` command imports narration or creates an intentionally silent review master; it does not generate a voice. Show what will be sent to Gemini and the budget; existing authorization for the same scope suffices. Never look for credentials in neighbouring folders.
+
+For finished audio that must stay intact, use `community-audio-reel` and `docs/audio-motion.md`. Its dedicated commands preserve the Master Audio, build a semantic storyboard, render a preview and verify the final after creator approvals.
 
 Use `community-clean` for stage 1. It finishes at creator-approved clean playback and corrected captions. Use `community-elements` for stage 2. Use `community-eye` to audit actual footage and the rendered result. Use `community-decode` only when a reference is supplied or its style is needed.
 

@@ -19,3 +19,6 @@ __pycache__/
 !examples/pulse-demo.mp4
 !examples/vox-demo.mp4
 *.log
+
+# Curated, manifest-registered reusable resources are project assets.
+!resources/**

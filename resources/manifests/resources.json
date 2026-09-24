@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "resources": [
+    {
+      "id": "synthetic-soft-click",
+      "type": "sfx",
+      "category": "sfx",
+      "format": ".wav",
+      "path": "sfx/synthetic-soft-click.wav",
+      "sha256": "b7aba7f0cb3b21843987f7707ea5b12902de0ab363526b59294d9f3502021d85",
+      "tags": [
+        "click",
+        "soft",
+        "synthetic"
+      ],
+      "visual_energy": "balanced",
+      "compatible_scenes": [],
+      "loopable": false,
+      "source": "Generated locally by scripts/motion_demo.py",
+      "license": "CC0-1.0",
+      "safety": "approved",
+      "width": null,
+      "height": null,
+      "duration": 0.110023,
+      "fps": null,
+      "alpha": false,
+      "has_audio": true,
+      "render_ready": true,
+      "safe_for_motion_only": true
+    }
+  ]
+}

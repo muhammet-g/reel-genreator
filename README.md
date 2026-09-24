@@ -10,14 +10,15 @@ Start with the **[Community Reels Manual](output/pdf/community-reels-guide.pdf)*
 
 Your assistant should ask one useful question at a time and handle the technical work. You choose the message and review the result.
 
-## Two ways to start
+## Three ways to start
 
 - **You have a recording:** keep your voice, clean repetitions and gaps, review the clean version, then add captions and meaningful animation.
+- **You have finished audio:** preserve it as Master Audio, add a script or timed transcript, review a semantic Motion-Only storyboard, then approve a preview before final rendering.
 - **You want a faceless reel:** start with an idea. Your assistant helps choose the audience and message, writes a script for your review, agrees the voice or text-only route, then creates the scenes.
 
 ## Give your assistant this message
 
-> Read this manual and the companion asset folder. I am a beginner. Guide me one step at a time in my preferred language. Ask whether I have a recording or want a faceless reel from an idea. Ask one useful question at a time and handle the technical work for me. Show me the script or clean cut before adding visuals. Explain any upload or cost before using a provider.
+> Read this manual and the companion asset folder. I am a beginner. Guide me one step at a time in my preferred language. Ask whether I have a video recording, finished audio, or an idea for a faceless reel. Ask one useful question at a time and handle the technical work for me. Show me the script, clean cut, or storyboard before adding visuals. Explain any upload or cost before using a provider.
 
 If it cannot read the PDF, ask it to read [the same manual as text](docs/MANUAL.md) and [the assistant playbook](docs/ASSISTANT-PLAYBOOK.md). A copyable first message is also in START-WITH-YOUR-ASSISTANT.txt.
 
@@ -26,8 +27,8 @@ If it cannot read the PDF, ask it to read [the same manual as text](docs/MANUAL.
 | Included | Purpose |
 |---|---|
 | 12-page manual, in English and in Arabic | Eight pages for you; four pages addressed to your assistant |
-| Two production routes | Improve an existing recording, or develop a faceless reel from an idea |
-| Five agent skills | Guided workflow, cleaning, visual/hearing review, reference decoding and elements |
+| Three production routes | Improve an existing recording, develop a faceless reel from an idea, or build a Motion-Only reel from finished audio |
+| Six agent skills | Guided workflow, cleaning, visual/hearing review, reference decoding, elements and finished-audio intake |
 | Five editable styles | VOX (the designer's own), Editorial, Signal, Diagram and Pulse (the faceless series) |
 | Six sample videos | Original synthetic examples of layout and motion |
 | Google key guide | Private setup, explicit media transfer and estimated costs |
@@ -50,7 +51,7 @@ python3 reel.py demo
 python3 reel.py render demo --style editorial
 ```
 
-The local synthetic sample costs **$0 in provider API charges** and is not a speech-recognition test. [Recorded-video workflow](docs/workflow.md), [faceless story workflow](docs/faceless.md), [Google setup and costs](docs/gemini-setup.md), [styles/assets](docs/styles.md), [troubleshooting](docs/troubleshooting.md).
+The local synthetic sample costs **$0 in provider API charges** and is not a speech-recognition test. [Recorded-video workflow](docs/workflow.md), [faceless story workflow](docs/faceless.md), [Motion-Only audio workflow](docs/audio-motion.md), [Google setup and costs](docs/gemini-setup.md), [styles/assets](docs/styles.md), [troubleshooting](docs/troubleshooting.md).
 
 Faceless narration can be the person's audio or a separately authorized generated voice. The `story` command imports audio or makes an intentionally silent story; it does not generate narration. Use an available voice tool or Google's current speech workflow only after the creator chooses that route.
 
