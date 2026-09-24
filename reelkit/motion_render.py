@@ -12,6 +12,7 @@ from .motion_audio import verify_master
 from .motion_composition import build_motion_composition
 from .motion_design import load_style
 from .motion_storyboard import storyboard_approval_valid
+from .motion_sfx import ensure_mixed_audio
 
 
 def decoded_audio_hash(path):
@@ -69,7 +70,8 @@ def _snapshot(p: Path, out: Path) -> dict:
             "motion_plan": digest(p / "motion-plan.json"), "composition": digest(out / "index.html"),
             "composition_build": digest(out / "build.json"),
             "style": hashlib.sha256(json.dumps(load_style(p), sort_keys=True).encode()).hexdigest(),
-            "render_audio": state["render_audio"]["sha256"]}
+            "render_audio": state["render_audio"]["sha256"],
+            "mixed_audio": state.get("mixed_audio", {}).get("sha256") if state.get("mixed_audio") else None}
 
 
 def _verify_output(path: Path, derivative: Path, total: float, expected_audio_hash: str, frame=None):
@@ -94,13 +96,15 @@ def _verify_output(path: Path, derivative: Path, total: float, expected_audio_ha
     return {"dimensions": [frame["width"], frame["height"]], "duration": measured, "video_codec": "h264", "audio_codec": "aac",
             "audio_sample_rate": int(audio["sample_rate"]), "audio_channels": int(audio["channels"]),
             "audio_bit_rate": int(audio.get("bit_rate", 0)),
-            "audio_matches_derivative": True, "decoded_audio_sha256": actual}
+            "audio_matches_derivative": "render-audio-mix-" not in derivative.name,
+            "audio_matches_approved_source": True, "decoded_audio_sha256": actual}
 
 
 def render_preview(p: Path, workers=1) -> Path:
     p = Path(p)
     storyboard_approval_valid(p)
     derivative = ensure_render_audio(p)
+    approved_audio = ensure_mixed_audio(p, derivative)
     out = build_motion_composition(p)
     _composition_check(out)
     snapshot = _snapshot(p, out)
@@ -114,10 +118,11 @@ def render_preview(p: Path, workers=1) -> Path:
         hf("render", out, "--output", picture, "--fps", str(frame["fps"]), "--quality", "draft",
            "--workers", str(workers), "--no-best-effort")
     if not preview.exists():
-        ffmpeg(["-i", picture, "-i", derivative, "-map", "0:v:0", "-map", "1:a:0", "-c", "copy",
+        ffmpeg(["-i", picture, "-i", approved_audio, "-map", "0:v:0", "-map", "1:a:0", "-c", "copy",
                 "-movflags", "+faststart", preview])
     _, state = verify_master(p)
-    report = _verify_output(preview, derivative, state["duration"], state["render_audio"]["decoded_sha256"], frame)
+    approved_hash = state["mixed_audio"]["decoded_sha256"] if state.get("mixed_audio") else state["render_audio"]["decoded_sha256"]
+    report = _verify_output(preview, approved_audio, state["duration"], approved_hash, frame)
     save(folder / f"preview-{key}.json", {"snapshot": snapshot, "output_sha256": digest(preview), **report})
     return preview
 
@@ -154,6 +159,7 @@ def render_final(p: Path, workers=1) -> Path:
     p = Path(p)
     storyboard_approval_valid(p)
     derivative = ensure_render_audio(p)
+    approved_audio = ensure_mixed_audio(p, derivative)
     out = build_motion_composition(p)
     preview_approval_valid(p, out)
     _composition_check(out)
@@ -168,10 +174,11 @@ def render_final(p: Path, workers=1) -> Path:
         hf("render", out, "--output", picture, "--fps", str(frame["fps"]), "--quality", "high",
            "--workers", str(workers), "--no-best-effort")
     if not final.exists():
-        ffmpeg(["-i", picture, "-i", derivative, "-map", "0:v:0", "-map", "1:a:0", "-c", "copy",
+        ffmpeg(["-i", picture, "-i", approved_audio, "-map", "0:v:0", "-map", "1:a:0", "-c", "copy",
                 "-movflags", "+faststart", final])
     _, state = verify_master(p)
-    report = _verify_output(final, derivative, state["duration"], state["render_audio"]["decoded_sha256"], frame)
+    approved_hash = state["mixed_audio"]["decoded_sha256"] if state.get("mixed_audio") else state["render_audio"]["decoded_sha256"]
+    report = _verify_output(final, approved_audio, state["duration"], approved_hash, frame)
     preview = p / load(p / "preview-approval.json")["preview"]
     preview_duration = float(probe(preview)["format"]["duration"])
     if abs(preview_duration - report["duration"]) > 1/30 + .01:

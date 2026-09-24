@@ -71,14 +71,14 @@ python reel.py audio-plan my-audio-reel --file motion-plan.json
 python reel.py audio-compose my-audio-reel
 ```
 
-The Motion-Only composition contains no source-video element. It separates storyboard semantics, motion choices and style tokens. Optional `motion-style.json` changes palette and type tokens without changing the semantic storyboard. Local resource metadata lives in `resources/manifests/resources.json`; `import-resource` records one asset at a time. Approved, compatible, Motion-Only-safe local images, SVGs or videos may be selected by a scene's `resource_tags` or `resource_id`. Otherwise the built-in component remains. The default content rules are centralized in `reelkit/content_policy.py`; metadata checks do not replace visual review of an asset.
+The Motion-Only composition contains no source-video element. It separates storyboard semantics, motion choices and style tokens. Optional `motion-style.json` changes palette and type tokens without changing the semantic storyboard. Approved local SVGs, images, supported videos and PNG sequences may be selected by `resource_tags` or `resource_id`; the built-in component remains as fallback. See [Resource System v2](resource-system.md) for the local manifest, placement and SFX cues. The default content rules are centralized in `reelkit/content_policy.py`; metadata checks do not replace visual review.
 
 ```sh
 python reel.py import-resource my-icon.svg --id my-icon-01 --category svg --tag process --license CC0 --source "Creator's own SVG" --safety approved --scene diagram
 python reel.py list-resources
 ```
 
-After reviewing the storyboard, render a draft preview. It uses the same timings and AAC derivative as the final render. The derivative is created once from the unchanged Master Audio and remains a separate file. The preview uses HyperFrames draft quality; final uses high quality. Both remux the same derivative audio bitstream and verify its decoded hash. WAV/FLAC/MP3 originals remain byte-identical in the project; AAC in MP4 is a technical conversion and cannot be byte-identical to those source codecs.
+After reviewing the storyboard, render a draft preview. The derivative is created once from the unchanged Master Audio and remains a separate file. If the plan has approved SFX cues, a separate hash-keyed AAC mix is made from that derivative; otherwise the derivative is used directly. The preview uses HyperFrames draft quality; final uses high quality. Both remux the same approved audio artifact and verify its decoded hash. WAV/FLAC/MP3 originals remain byte-identical in the project; AAC in MP4 is a technical conversion and cannot be byte-identical to those source codecs.
 
 ```sh
 python reel.py audio-preview my-audio-reel

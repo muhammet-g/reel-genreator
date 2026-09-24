@@ -47,5 +47,16 @@ MOTION.captions.forEach((caption,index)=>{
   timeline.fromTo(root,{opacity:0,y:15},{opacity:1,y:0,duration:Math.min(.18,(end-start)/3),ease:'power2.out'},start);
   timeline.set(root,{visibility:'hidden'},end);
 });
+// The selected frame is a pure function of the composition time, including random-access seeks.
+(MOTION.sequences||[]).forEach(sequence=>{
+  const element=document.querySelector(sequence.selector), state={frame:0};
+  const duration=sequence.frames.length/sequence.fps;
+  timeline.to(state,{frame:sequence.frames.length,duration:duration,ease:'none',
+    onUpdate:()=>{
+      const index=Math.min(sequence.frames.length-1,Math.max(0,Math.floor(state.frame+1e-6)));
+      const source=sequence.frames[index];
+      if(element.getAttribute('src')!==source) element.setAttribute('src',source);
+    }},sequence.start);
+});
 window.__timelines=window.__timelines||{};
 window.__timelines.reel=timeline;

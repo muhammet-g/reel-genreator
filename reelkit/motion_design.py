@@ -91,10 +91,35 @@ def validate_motion_plan(plan: dict, board: dict, total: float) -> dict:
             raise ValueError(f"Scene {scene['id']} needs a list of resource tags.")
         if "resource_id" in scene and not isinstance(scene["resource_id"], str):
             raise ValueError(f"Scene {scene['id']} needs a resource id string.")
+        placement = scene.get("resource_placement", {})
+        if not isinstance(placement, dict) or any(key not in {"x", "y", "width", "opacity", "trim_start", "loop", "color"} for key in placement):
+            raise ValueError(f"Scene {scene['id']} has invalid resource placement controls.")
+        for key, low, high in (("x", 0, 100), ("y", 0, 100), ("width", 5, 100), ("opacity", 0, 1),
+                               ("trim_start", 0, 3600)):
+            if key in placement and (not isinstance(placement[key], (int, float)) or
+                                     not math.isfinite(placement[key]) or not low <= placement[key] <= high):
+                raise ValueError(f"Scene {scene['id']} has invalid resource {key}.")
+        if "loop" in placement and not isinstance(placement["loop"], bool):
+            raise ValueError(f"Scene {scene['id']} needs a boolean resource loop.")
+        if placement.get("loop") and placement.get("trim_start", 0):
+            raise ValueError(f"Scene {scene['id']} cannot combine looping and trim_start; export a trimmed loop.")
+        if "color" in placement and placement["color"] not in DEFAULT_STYLE["colors"]:
+            raise ValueError(f"Scene {scene['id']} needs a known color token.")
     captions = plan.get("captions")
     if not captions:
         raise ValueError("Motion-Only captions are on by default; provide measured phrase captions.")
     validate_captions(captions, total)
+    sfx = plan.get("sfx", [])
+    if not isinstance(sfx, list) or len(sfx) > 24:
+        raise ValueError("Motion plan needs at most 24 intentional SFX cues.")
+    for cue in sfx:
+        if not isinstance(cue, dict) or not isinstance(cue.get("resource_id"), str):
+            raise ValueError("Each SFX cue needs a resource id.")
+        for key, low, high in (("start", 0, total), ("volume", 0, .25), ("fade_in", 0, 2),
+                               ("fade_out", 0, 2)):
+            value = cue.get(key, 0 if key != "volume" else .18)
+            if not isinstance(value, (int, float)) or not math.isfinite(value) or not low <= value <= high:
+                raise ValueError(f"SFX cue {key} is outside the safe range.")
     return plan
 
 

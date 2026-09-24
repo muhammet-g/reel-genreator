@@ -51,7 +51,7 @@ python3 reel.py demo
 python3 reel.py render demo --style editorial
 ```
 
-The local synthetic sample costs **$0 in provider API charges** and is not a speech-recognition test. [Recorded-video workflow](docs/workflow.md), [faceless story workflow](docs/faceless.md), [Motion-Only audio workflow](docs/audio-motion.md), [Google setup and costs](docs/gemini-setup.md), [styles/assets](docs/styles.md), [troubleshooting](docs/troubleshooting.md).
+The local synthetic sample costs **$0 in provider API charges** and is not a speech-recognition test. [Recorded-video workflow](docs/workflow.md), [faceless story workflow](docs/faceless.md), [Motion-Only audio workflow](docs/audio-motion.md), [Resource System v2](docs/resource-system.md), [Google setup and costs](docs/gemini-setup.md), [styles/assets](docs/styles.md), [troubleshooting](docs/troubleshooting.md).
 
 Faceless narration can be the person's audio or a separately authorized generated voice. The `story` command imports audio or makes an intentionally silent story; it does not generate narration. Use an available voice tool or Google's current speech workflow only after the creator chooses that route.
 

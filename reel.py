@@ -23,7 +23,7 @@ from reelkit.motion_audio import intake_audio, set_transcript, verify_master
 from reelkit.motion_storyboard import import_storyboard, approve_storyboard, storyboard_approval_valid
 from reelkit.motion_design import import_motion_plan
 from reelkit.motion_composition import build_motion_composition
-from reelkit.motion_resources import import_resource, load_manifest
+from reelkit.motion_resources import import_resource, load_manifest, refresh_resource
 from reelkit.motion_render import render_preview, approve_preview, render_final
 
 
@@ -242,10 +242,11 @@ def audio_compose(args):
 
 
 def resource_import(args):
-    item = import_resource(args.file, ident=args.id, category=args.category, tags=args.tags or [],
+    item = import_resource(args.file, ident=args.id, category=args.category, tags=args.tags,
                            license=args.license, origin=args.source, safety=args.safety,
                            visual_energy=args.energy, compatible_scenes=args.scene or [], loopable=args.loopable,
-                           safe_for_motion_only=args.motion_only_safe if args.motion_only_safe else None)
+                           safe_for_motion_only=args.motion_only_safe if args.motion_only_safe else None,
+                           style_tags=args.style_tags, sequence_fps=args.sequence_fps)
     print("Registered resource:", item["id"], "—", item["path"])
     if not item["render_ready"]:
         print("Metadata registered; this format needs a compatibility adapter before composition placement.")
@@ -254,6 +255,11 @@ def resource_import(args):
 def resource_list(_args):
     for item in load_manifest()["resources"]:
         print(item["id"], item["type"], item["category"], item["safety"], item["path"])
+
+
+def resource_refresh(args):
+    item = refresh_resource(args.id)
+    print("Inspected resource:", item["id"], item["sha256"], item["safety"])
 
 
 def audio_preview(args):
@@ -407,13 +413,18 @@ def main():
     s=commands.add_parser("audio-compose",help="Build the seekable Motion-Only picture composition")
     s.add_argument("name");s.set_defaults(func=audio_compose)
     s=commands.add_parser("import-resource",help="Inspect and register one local motion resource")
-    s.add_argument("file");s.add_argument("--id",required=True);s.add_argument("--category",required=True)
-    s.add_argument("--tag",dest="tags",action="append");s.add_argument("--license",required=True)
-    s.add_argument("--source",required=True);s.add_argument("--safety",choices=("unreviewed","approved","blocked"),default="unreviewed")
-    s.add_argument("--energy",choices=("calm","balanced","energetic"),default="balanced")
+    s.add_argument("file");s.add_argument("--id");s.add_argument("--category")
+    s.add_argument("--tag",dest="tags",action="append");s.add_argument("--style-tag",dest="style_tags",action="append")
+    s.add_argument("--license",default="UNVERIFIED")
+    s.add_argument("--source",default="Local user import; provenance not yet verified")
+    s.add_argument("--safety",choices=("unreviewed","approved","blocked"),default="unreviewed")
+    s.add_argument("--energy",choices=("calm","balanced","energetic"))
     s.add_argument("--scene",action="append");s.add_argument("--loopable",action="store_true");s.set_defaults(func=resource_import)
+    s.add_argument("--sequence-fps",type=float)
     s.add_argument("--motion-only-safe",action="store_true",help="Manually mark a reviewed video/image as appropriate for Motion-Only use")
     commands.add_parser("list-resources",help="List registered local resources").set_defaults(func=resource_list)
+    s=commands.add_parser("refresh-resource",help="Reinspect one replaced resource; changed content loses approval")
+    s.add_argument("id");s.set_defaults(func=resource_refresh)
     s=commands.add_parser("audio-preview",help="Render a draft Motion-Only preview with the approved Master Audio derivative")
     s.add_argument("name");s.add_argument("--workers",type=int,choices=range(1,5),default=1);s.set_defaults(func=audio_preview)
     s=commands.add_parser("approve-preview",help="Record actual creator approval of a Motion-Only preview")
