@@ -9,6 +9,7 @@ from typing import Protocol
 import math
 import shutil
 import tempfile
+import time
 
 from .core import digest, load, probe, project, save
 
@@ -59,7 +60,8 @@ def intake_audio(audio_path: str | Path, name: str, script_path=None, transcript
         "master_audio": {"path": master.name, "sha256": original_hash, "source_name": src.name,
                          "extension": src.suffix.lower(), "stream": stream, "container": container},
         "render_audio": None,
-        "transcript_status": "provided" if transcript else "missing",
+        "transcript_status": ("reference-script" if transcript and not transcript["segments"] else
+                              "timed-transcript-unreviewed" if transcript else "missing"),
     })
     if transcript:
         save(p / "transcript.json", transcript)
@@ -126,7 +128,7 @@ def set_transcript(p: Path, script_path=None, transcript_path=None) -> dict:
     _, state = verify_master(p)
     result = make_transcript(state["duration"], script_path, transcript_path)
     save(Path(p) / "transcript.json", result)
-    state["transcript_status"] = "provided"
+    state["transcript_status"] = "reference-script" if not result["segments"] else "timed-transcript-unreviewed"
     save(Path(p) / "motion-project.json", state)
     return result
 
@@ -146,6 +148,36 @@ def transcribe_with_adapter(p: Path, adapter: TranscriptionAdapter, *, allow_upl
     result = {"schema_version": SCHEMA_VERSION, "source": adapter.name, "alignment": "adapter-proposed",
               "reference_script": reference, "segments": segments}
     save(Path(p) / "transcript.json", result)
-    state["transcript_status"] = "adapter-proposed"
+    state["transcript_status"] = "external-aligned-proposed" if adapter.external else "locally-aligned-proposed"
     save(Path(p) / "motion-project.json", state)
     return result
+
+
+def review_alignment(p: Path, by: str) -> dict:
+    """Record explicit creator review of timed wording, separately from storyboard approval."""
+    p = Path(p)
+    master, _ = verify_master(p)
+    if not by.strip():
+        raise ValueError("Name the creator who reviewed the timed transcript.")
+    transcript_path = p / "transcript.json"
+    transcript = load(transcript_path)
+    if not transcript.get("segments"):
+        raise ValueError("A reference script alone has no timing to review.")
+    record = {"by": by.strip(), "at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+              "sha256": {"master_audio": digest(master), "transcript.json": digest(transcript_path)}}
+    save(p / "alignment-review.json", record)
+    return record
+
+
+def alignment_review_status(p: Path) -> str:
+    p = Path(p)
+    record_path = p / "alignment-review.json"
+    if not record_path.exists():
+        return "not reviewed"
+    try:
+        master, _ = verify_master(p)
+        record = load(record_path)
+        expected = {"master_audio": digest(master), "transcript.json": digest(p / "transcript.json")}
+        return "creator-reviewed" if record.get("sha256") == expected else "stale; review again"
+    except (ValueError, FileNotFoundError, KeyError):
+        return "stale; review again"

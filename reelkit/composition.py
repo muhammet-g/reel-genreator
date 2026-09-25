@@ -7,15 +7,38 @@ from .core import ROOT, approval_valid, duration, load, save, validate_captions
 
 STYLES = ("editorial", "signal", "diagram", "pulse", "vox")
 
+# Keep a complete JavaScript member access/call together before isolating ordinary
+# Latin words. The delimiter characters are part of the LTR island, not Arabic
+# punctuation: splitting at [, ], (, ), or - reverses their visual order in RTL.
+CODE_EXPRESSION = re.compile(
+    r"(?<![\w$])(?:[A-Za-z_$][\w$]*)(?:\[[^\]\n]{1,120}\]|\.[A-Za-z_$][\w$]*(?:\([^()\n]{0,120}\))?)+"
+    r"|(?<![\w$])[A-Za-z_$][\w$]*\([^()\n]{0,120}\)"
+    r"|(?<![\w$])[-−]\d+(?:\.\d+)?(?![\w])"
+)
+LATIN_ISLAND = re.compile(r"([A-Za-z][A-Za-z0-9 .+/#-]*[A-Za-z0-9]|[A-Za-z])")
+
+
+def _latin_words_html(text):
+    pieces = LATIN_ISLAND.split(text)
+    return "".join(
+        f'<bdi dir="ltr" data-layout-allow-overlap="true">{html.escape(x)}</bdi>'
+        if LATIN_ISLAND.fullmatch(x or "") else html.escape(x)
+        for x in pieces
+    )
+
 
 def caption_html(text):
     # Isolate Latin islands while letting the browser perform Arabic shaping.
     if not re.search(r"[\u0600-\u06ff]", text):
         return html.escape(text)
-    pieces = re.split(r"([A-Za-z][A-Za-z0-9 .+/#-]*[A-Za-z0-9]|[A-Za-z])", text)
-    # The islands are runs of ONE caption; the layout check measures each as a block, so they carry the allow-overlap mark.
-    return "".join(f'<bdi dir="ltr" data-layout-allow-overlap="true">{html.escape(x)}</bdi>' if re.fullmatch(r"[A-Za-z][A-Za-z0-9 .+/#-]*", x or "")
-                   else html.escape(x) for x in pieces)
+    result, cursor = [], 0
+    for match in CODE_EXPRESSION.finditer(text):
+        result.append(_latin_words_html(text[cursor:match.start()]))
+        result.append('<bdi dir="ltr" class="code-island" data-layout-allow-overlap="true"><code>'
+                      + html.escape(match.group()) + '</code></bdi>')
+        cursor = match.end()
+    result.append(_latin_words_html(text[cursor:]))
+    return "".join(result)
 
 
 def build(p, style="editorial", faceless=False):

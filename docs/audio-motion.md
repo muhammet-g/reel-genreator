@@ -24,6 +24,8 @@ python reel.py audio-transcript my-audio-reel --script script.txt --transcript t
 
 `audio-intake` also accepts `--transcript` directly, with or without `--script`. The Python `TranscriptionAdapter` interface in `reelkit/motion_audio.py` accepts a local adapter or an explicitly authorized external adapter. No speech model or provider is installed by default. An external adapter cannot run without explicit authorization; the engine hands any adapter a disposable copy of the audio.
 
+`audio-status` reports the reference script, timed alignment and creator review separately. A script alone is `reference-script` with no timed phrases. Supplied timing and local or authorized adapter timing are proposals until the creator checks the actual recording. After that explicit review, `approve-alignment <name> --by "Creator name"` records hashes of the Master Audio and transcript; later transcript edits make that review stale. This approval is distinct from storyboard and preview approval.
+
 ## Semantic storyboard
 
 The storyboard describes meaning and visual intent, leaving appearance to later style and motion layers. Save JSON such as:
@@ -72,6 +74,8 @@ python reel.py audio-compose my-audio-reel
 ```
 
 The Motion-Only composition contains no source-video element. It separates storyboard semantics, motion choices and style tokens. Optional `motion-style.json` changes palette and type tokens without changing the semantic storyboard. Approved local SVGs, images, supported videos and PNG sequences may be selected by `resource_tags` or `resource_id`; the built-in component remains as fallback. See [Resource System v2](resource-system.md) for the local manifest, placement and SFX cues. The default content rules are centralized in `reelkit/content_policy.py`; metadata checks do not replace visual review.
+
+For programming explanations, a visual scene may include `code_array` with a JavaScript `variable`, 2–6 `cells`, optional `selected_index` and `selection_path`, an exact `expression`, and an optional typed `result` (`element` or `array`). The component keeps array order, indexes and code LTR inside an Arabic scene and animates an optional selection path. Cell labels and result labels are project text, not hard-coded English. The motion plan may set `language` and short `decorations`; Arabic projects default to no English decorative copy.
 
 ```sh
 python reel.py import-resource my-icon.svg --id my-icon-01 --category svg --tag process --license CC0 --source "Creator's own SVG" --safety approved --scene diagram

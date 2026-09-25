@@ -7,14 +7,17 @@ import math
 from .core import load, save, validate_captions
 from .motion_audio import verify_master
 from .motion_storyboard import storyboard_approval_valid
+from .motion_layout import validate_contract
+from .motion_code import validate_code_array
+from .motion_choreography import validate_choreography, shared_arrays
 
 SCENE_TYPES = {"typography", "statement", "number", "compare", "steps", "diagram", "progress",
                "notification", "section", "cta"}
 LAYOUTS = {"centered", "left-weighted", "right-weighted", "split", "grid", "editorial", "full-screen"}
-ENTRANCES = {"reveal", "rise", "slide", "scale"}
+ENTRANCES = {"auto", "reveal", "rise", "slide", "scale", "mask", "settle", "staged", "focus", "none"}
 EMPHASIS = {"none", "pulse", "underline", "count", "fill", "connect"}
 EXITS = {"fade", "slide", "hold"}
-TRANSITIONS = {"cut", "fade", "push", "wipe"}
+TRANSITIONS = {"cut", "fade", "push", "wipe", "carry", "focus"}
 DENSITIES = {"low", "medium", "high"}
 ENERGIES = {"calm", "balanced", "energetic"}
 
@@ -44,6 +47,16 @@ def validate_motion_plan(plan: dict, board: dict, total: float) -> dict:
     family = plan.get("transition_family", "fade")
     if family not in TRANSITIONS:
         raise ValueError("Use one supported transition family for this reel.")
+    language = plan.get("language")
+    if language is not None:
+        import re
+        if not isinstance(language, str) or not re.fullmatch(r"[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*", language):
+            raise ValueError("Motion plan language needs a short BCP-47 language tag.")
+    decorations = plan.get("decorations", {})
+    if not isinstance(decorations, dict) or set(decorations) - {"top_left", "top_right", "bottom_text"} or any(
+        not isinstance(value, str) or len(value) > 55 for value in decorations.values()
+    ):
+        raise ValueError("Motion decorations need short text fields.")
     for semantic, scene in zip(board["scenes"], scenes):
         if not isinstance(scene, dict) or scene.get("id") != semantic["id"]:
             raise ValueError("Motion scene ids must match the approved storyboard in order.")
@@ -79,13 +92,17 @@ def validate_motion_plan(plan: dict, board: dict, total: float) -> dict:
         motion = scene.get("motion")
         if not isinstance(motion, dict) or motion.get("entrance") not in ENTRANCES or motion.get("emphasis") not in EMPHASIS or motion.get("exit") not in EXITS:
             raise ValueError(f"Scene {scene['id']} needs supported entrance, emphasis and exit choices.")
+        if "code_array" in scene:
+            validate_code_array(scene["code_array"], scene["id"])
         scene_duration = float(scene["end"]) - float(scene["start"])
         if scene_duration < 1.2:
             raise ValueError(f"Scene {scene['id']} is too short for a readable Motion-Only composition.")
         if len(scene["headline"].split()) > 10 and scene_duration < 2.4:
             raise ValueError(f"Scene {scene['id']} shows too many headline words for its duration.")
-        if "transition" in scene and scene["transition"] != family:
-            raise ValueError(f"Scene {scene['id']} conflicts with the video's transition family.")
+        validate_contract(scene.get("composition", {}), {"width": 1080, "height": 1920})
+        validate_choreography(scene)
+        if "transition" in scene and scene["transition"] not in TRANSITIONS:
+            raise ValueError(f"Scene {scene['id']} needs a supported transition.")
         if "resource_tags" in scene and (not isinstance(scene["resource_tags"], list) or any(
             not isinstance(tag, str) or not tag.strip() for tag in scene["resource_tags"])):
             raise ValueError(f"Scene {scene['id']} needs a list of resource tags.")
@@ -105,6 +122,7 @@ def validate_motion_plan(plan: dict, board: dict, total: float) -> dict:
             raise ValueError(f"Scene {scene['id']} cannot combine looping and trim_start; export a trimmed loop.")
         if "color" in placement and placement["color"] not in DEFAULT_STYLE["colors"]:
             raise ValueError(f"Scene {scene['id']} needs a known color token.")
+    shared_arrays(scenes)
     captions = plan.get("captions")
     if not captions:
         raise ValueError("Motion-Only captions are on by default; provide measured phrase captions.")

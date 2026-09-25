@@ -19,7 +19,7 @@ from reelkit.core import (latinize, normalize_times, ROOT, approval_valid, diges
                           validate_plan, video_filter)
 from reelkit import gemini
 from reelkit.composition import STYLES, build
-from reelkit.motion_audio import intake_audio, set_transcript, verify_master
+from reelkit.motion_audio import intake_audio, set_transcript, verify_master, review_alignment, alignment_review_status
 from reelkit.motion_storyboard import import_storyboard, approve_storyboard, storyboard_approval_valid
 from reelkit.motion_design import import_motion_plan
 from reelkit.motion_composition import build_motion_composition
@@ -203,6 +203,11 @@ def audio_transcript(args):
     print("Saved", result["source"], "input. Script-only timing remains unverified.")
 
 
+def audio_alignment_approve(args):
+    review_alignment(project(args.name), args.by)
+    print("Recorded creator review of the timed Arabic alignment.")
+
+
 def audio_storyboard(args):
     target = import_storyboard(project(args.name), args.file)
     print("Validated semantic storyboard:", target)
@@ -228,6 +233,13 @@ def audio_status(args):
     print("Duration:", state["duration"], "seconds")
     print("Render derivative:", state["render_audio"] or "not created")
     print("Transcript:", state["transcript_status"])
+    transcript_path = p / "transcript.json"
+    if transcript_path.exists():
+        transcript = load(transcript_path)
+        print("Reference script:", "present" if transcript.get("reference_script") else "none")
+        print("Timed alignment:", transcript.get("alignment", "unknown"),
+              f"({len(transcript.get('segments', []))} phrases)")
+        print("Creator alignment review:", alignment_review_status(p))
     print("Storyboard approval:", status)
 
 
@@ -402,6 +414,8 @@ def main():
     s.add_argument("--script");s.add_argument("--transcript");s.set_defaults(func=audio_intake)
     s=commands.add_parser("audio-transcript",help="Add a script or timed transcript to a Motion-Only project")
     s.add_argument("name");s.add_argument("--script");s.add_argument("--transcript");s.set_defaults(func=audio_transcript)
+    s=commands.add_parser("approve-alignment",help="Record actual creator review of timed transcript wording")
+    s.add_argument("name");s.add_argument("--by",required=True);s.set_defaults(func=audio_alignment_approve)
     s=commands.add_parser("audio-storyboard",help="Validate and save a semantic Motion-Only storyboard")
     s.add_argument("name");s.add_argument("--file",required=True);s.set_defaults(func=audio_storyboard)
     s=commands.add_parser("approve-storyboard",help="Record actual creator approval of a Motion-Only storyboard")

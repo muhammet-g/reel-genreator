@@ -11,6 +11,10 @@ from .core import ROOT, digest, ffmpeg, load, save
 from .motion_audio import verify_master
 from .motion_storyboard import storyboard_approval_valid
 from .motion_design import load_style, validate_motion_plan
+from .motion_code import code_array_html
+from .motion_layout_adapter import composition_model, composition_css
+from .motion_program import program_html, shared_array_html
+from .motion_choreography import shared_arrays, motion_advisories
 from .motion_resources import LIBRARY, INSPECTION_VERSION, load_manifest, select_resource, sequence_frames, _upgrade_item
 
 
@@ -60,6 +64,12 @@ def _loop_video(source: Path, assets: Path, index: int, duration: float, resourc
 
 
 def _scene_body(scene):
+    if scene.get("choreography") and scene.get("code_array"):
+        return program_html(scene)
+    if scene.get("code_array"):
+        return code_array_html(scene["code_array"])
+    if scene.get("choreography", {}).get("context"):
+        return '<div class="program-context" dir="ltr">' + ''.join(f'<span>{_esc(x)}</span>' for x in scene['choreography']['context']) + '</div>'
     kind = scene["type"]
     if kind in ("compare", "steps", "diagram"):
         items = scene["items"]
@@ -97,6 +107,10 @@ def build_motion_composition(p: Path) -> Path:
     assets = out / "assets"
     assets.mkdir(parents=True, exist_ok=True)
     shutil.copy2(ROOT / "node_modules/gsap/dist/gsap.min.js", assets / "gsap.min.js")
+    shutil.copy2(ROOT / "node_modules/gsap/dist/MotionPathPlugin.min.js", assets / "MotionPathPlugin.min.js")
+    groups = shared_arrays(plan["scenes"])
+    shared_html = "".join(shared_array_html(group) for group in groups)
+    save(out / "motion-design-check.json", motion_advisories(plan))
     fonts = ROOT / "node_modules/@fontsource/noto-sans-arabic/files"
     font_css = ""
     for subset, family in (("arabic", "ReelArabic"), ("latin", "ReelLatin")):
@@ -173,7 +187,10 @@ def build_motion_composition(p: Path) -> Path:
             else:
                 parts += f'<img class="scene-resource" style="{style_attr}" src="assets/{destination.name}" alt="">'
         layout = scene["layout"]
-        scenes.append(f'<section id="scene-{i}" class="clip scene type-{scene["type"]} layout-{layout}" '
+        code_class = " code-array-scene" if scene.get("code_array") else ""
+        if scene.get("choreography"):
+            code_class += " semantic-scene" + (" programming-scene" if scene.get("code_array") else " semantic-hook")
+        scenes.append(f'<section id="scene-{i}" class="clip scene type-{scene["type"]} layout-{layout}{code_class}" '
                       f'dir="{_esc(scene.get("headline_direction", "auto"))}" '
                       f'data-start="{start}" data-duration="{end-start}" data-track-index="1" '
                       f'data-layout-allow-overlap="true"><div class="scene-inner">{parts}</div></section>')
@@ -182,19 +199,31 @@ def build_motion_composition(p: Path) -> Path:
         captions.append(f'<div id="caption-{i}" class="clip caption" dir="{_esc(cap.get("direction", "auto"))}" '
                         f'data-start="{cap["start"]}" data-duration="{cap["end"]-cap["start"]}" '
                         f'data-track-index="3" data-layout-allow-overlap="true"><span>{caption_html(cap["text"])}</span></div>')
+    model = composition_model(plan, frame, board)
+    save(out / "composition-model.json", model)
     css = (ROOT / "templates" / "motion-only.css").read_text(encoding="utf-8")
+    css += "\n" + composition_css(model)
     js = (ROOT / "templates" / "motion-only.js").read_text(encoding="utf-8")
+    js += "\n" + (ROOT / "templates" / "motion-program.js").read_text(encoding="utf-8")
     tokens = "".join(f"--{key}:{value};" for key, value in style["colors"].items())
     config = json.dumps({"duration": state["duration"], "scenes": plan["scenes"], "captions": plan["captions"],
                          "transition_family": plan["transition_family"], "motion_density": plan["motion_density"],
-                         "visual_energy": plan["visual_energy"], "sequences": sequences}, ensure_ascii=False).replace("</", "<\\/")
-    language = "ar" if any(__import__("re").search(r"[\u0600-\u06ff]", scene["headline"]) for scene in plan["scenes"]) else "en"
-    document = f'''<!doctype html><html lang="{language}"><head><meta charset="utf-8"><title>{_esc(p.name)} Motion-Only</title>
-<script src="assets/gsap.min.js"></script><style>{font_css}\n#reel{{{tokens}}}\n{css}</style></head>
+                         "visual_energy": plan["visual_energy"], "sequences": sequences, "shared_arrays": groups, "composition": model}, ensure_ascii=False).replace("</", "<\\/")
+    language = plan.get("language") or ("ar" if any(__import__("re").search(r"[\u0600-\u06ff]", scene["headline"]) for scene in plan["scenes"]) else "en")
+    arabic = language.lower().split("-")[0] == "ar"
+    default_decorations = ({"top_left": "", "top_right": "", "bottom_text": ""} if arabic else
+                           {"top_left": "COMMUNITY / MOTION", "top_right": "01—", "bottom_text": "IDEAS IN MOTION"})
+    decorations = {**default_decorations, **plan.get("decorations", {})}
+    top_rule = (f'<div class="top-rule"><span>{_esc(decorations["top_left"])}</span>'
+                f'<span>{_esc(decorations["top_right"])}</span></div>'
+                if decorations["top_left"] or decorations["top_right"] else "")
+    bottom_label = f'<span>{_esc(decorations["bottom_text"])}</span>' if decorations["bottom_text"] else ""
+    document = f'''<!doctype html><html lang="{_esc(language)}"><head><meta charset="utf-8"><title>{_esc(p.name)} Motion-Only</title>
+<script src="assets/gsap.min.js"></script><script src="assets/MotionPathPlugin.min.js"></script><style>{font_css}\n#reel{{{tokens}}}\n{css}</style></head>
 <body><main id="reel" data-composition-id="reel" data-start="0" data-width="{frame["width"]}" data-height="{frame["height"]}" data-duration="{state["duration"]}" data-fps="{frame["fps"]}">
 <div class="background-grid"></div><div class="ambient ambient-one"></div><div class="ambient ambient-two"></div>
-<div class="top-rule"><span>COMMUNITY / MOTION</span><span>01—</span></div>
-{''.join(scenes)}{''.join(media_overlays)}{''.join(captions)}<div class="bottom-rule"><span>IDEAS IN MOTION</span><i id="reel-progress"></i></div></main>
+{top_rule}
+{''.join(scenes)}{shared_html}{''.join(media_overlays)}{''.join(captions)}<div class="bottom-rule">{bottom_label}<i id="reel-progress"></i></div></main>
 <script>const MOTION={config};\n{js}</script></body></html>'''
     (out / "index.html").write_text(document, encoding="utf-8")
     save(out / "hyperframes.json", {"name": p.name + "-motion-only"})
