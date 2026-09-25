@@ -9,6 +9,8 @@ from reelkit.motion_audio import intake_audio
 from reelkit.motion_storyboard import import_storyboard, approve_storyboard
 from reelkit.motion_design import import_motion_plan
 from reelkit.motion_composition import build_motion_composition
+from reelkit.style_system import PROFILES
+import argparse
 
 
 def fixture_plan():
@@ -35,7 +37,7 @@ def fixture_plan():
             "captions": [{"start": i*6+.3, "end": (i+1)*6-.2, "text": text, "direction": "rtl"} for i, text in enumerate(captions)]}
 
 
-def build():
+def build(style=None):
     base = ROOT / "projects" / "synthetic-generalization"
     inputs = base / "fixture-inputs"; inputs.mkdir(parents=True, exist_ok=True)
     audio = inputs / "synthetic-silence.wav"
@@ -44,6 +46,10 @@ def build():
             out.setnchannels(1); out.setsampwidth(2); out.setframerate(48000); out.writeframes(b"\0\0"*48000*36)
     script = inputs / "reference.txt"; script.write_text("Synthetic visual validation. Silent audio, no narration claim.", encoding="utf-8")
     plan = fixture_plan()
+    if style == "code-dragon-v1":
+        # Synthetic Arabic-first stress: two-line heading/caption, numbers, and isolated JS.
+        plan["scenes"][2]["headline"] = "3 خطوات لبناء مشروع\nمن الفكرة إلى التنفيذ"
+        plan["captions"][0]["text"] = "تُرجع scores.at(-1) قيمة واحدة.\nوالنتيجة هنا هي 36."
     board = {"schema_version": 1, "mode": "motion-only", "timing_verified_by": "Synthetic fixture author", "scenes": []}
     for s in plan["scenes"]:
         board["scenes"].append({"id": s["id"], "start": s["start"], "end": s["end"], "narration": "Synthetic silent fixture",
@@ -56,6 +62,11 @@ def build():
         with patch("reelkit.motion_audio.project", return_value=p): intake_audio(audio, "synthetic", script_path=script)
     import_storyboard(p, inputs / "board.json"); approve_storyboard(p, "Synthetic fixture author (not production approval)")
     import_motion_plan(p, inputs / "plan.json")
+    if style:
+        save(p / "motion-style.json", {"style": style})
     print(build_motion_composition(p))
 
-if __name__ == "__main__": build()
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--style", choices=PROFILES)
+    build(parser.parse_args().style)

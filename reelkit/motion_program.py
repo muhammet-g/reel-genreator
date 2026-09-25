@@ -21,6 +21,16 @@ def program_html(scene):
     code = ''.join(f'<span class="program-token" data-token="{i}">{esc(t)}</span>' for i, t in enumerate(tokens))
     previous = f'<code class="previous-expression" dir="ltr">{esc(value["previous_expression"])}</code>' if value.get("previous_expression") else ''
     steps = ''.join(f'<div class="reason-step" dir="ltr"><code>{esc(r["text"])}</code><span class="reason-equals">=</span><strong>{esc(r["value"])}</strong></div>' for r in value.get("reasoning", []))
+    comments = ''.join(
+        '<div class="editor-comment" data-comment="{}" dir="ltr">'
+        '<span class="comment-marker" dir="ltr">//</span>'
+        '<span class="comment-content" dir="rtl">'
+        '<span class="comment-arabic" dir="rtl">{}</span> '
+        '<bdi class="comment-ltr" dir="ltr">{}</bdi>'
+        '</span></div>'.format(i, esc(comment["arabic"]), esc(comment["ltr"]))
+        for i, comment in enumerate(value.get("editor_comments", []))
+    )
+    editor = f'<div class="teaching-editor" data-component="code-editor" aria-label="Code explanation">{comments}</div>' if comments else ''
     result = value.get("result")
     result_html = ""
     if result:
@@ -33,4 +43,4 @@ def program_html(scene):
     # The copy begins at its source cell by design, then follows a path into the result.
     ghost = f'<div class="extraction-token" data-layout-allow-overlap="true" dir="auto">{esc(value["cells"][value.get("selected_index") or 0])}</div>'
     return (f'<div class="code-program" data-family="{esc(scene["choreography"]["family"])}" data-object="{esc(value["object_id"])}" data-layout-allow-overlap="true">'
-            f'<div class="reasoning">{steps}</div><div class="program-expression">{previous}<code class="current-expression" dir="ltr">{code}</code></div>{result_html}{ghost}</div>')
+            f'<div class="reasoning">{steps}</div>{editor}<div class="program-expression" data-component="code-expression">{previous}<code class="current-expression" dir="ltr">{code}</code></div>{result_html}{ghost}</div>')

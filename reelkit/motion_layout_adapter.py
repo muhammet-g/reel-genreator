@@ -9,9 +9,10 @@ def composition_model(plan, frame, board=None):
         semantic = next((s for s in (board or {}).get("scenes", []) if s["id"] == scene["id"]), {})
         prefix = f"#scene-{i} "
         bindings = []
-        def bind(ident, selector, role, global_selector=False):
+        def bind(ident, selector, role, global_selector=False, occupancy="support"):
             bindings.append({"id": ident, "selector": selector if global_selector else prefix+selector,
-                             "role": role, "importance": semantic.get("importance", "high") if role == "primary" else "medium"})
+                             "role": role, "occupancy": occupancy,
+                             "importance": semantic.get("importance", "high") if role == "primary" else "medium"})
         kind = scene["type"]
         primary_head = kind in {"typography", "statement", "section", "cta"} and not scene.get("code_array")
         bind("headline", ".headline", "primary" if primary_head else "secondary")
@@ -19,23 +20,27 @@ def composition_model(plan, frame, board=None):
         if scene.get("code_array"):
             visual = scene["code_array"]
             if scene.get("choreography"):
-                bind("teaching-object", f'#array-{visual["object_id"]} .program-container', "primary", True)
+                bind("teaching-object", f'#array-{visual["object_id"]} .program-container', "primary", True, "major")
                 bind("object-labels", f'#array-{visual["object_id"]} .program-variable', "context", True)
+                bind("count-connector", f'#array-{visual["object_id"]} .count-connector', "secondary", True)
+                bind("code-editor", ".teaching-editor", "secondary", occupancy="major")
                 bind("expression", ".current-expression", "secondary")
                 bind("previous-expression", ".previous-expression", "secondary")
-                bind("result", ".program-result", "secondary")
+                bind("result", ".program-result", "secondary", occupancy="major")
                 bind("explanation", ".reason-step", "secondary")
             else:
-                bind("teaching-object", ".code-array-rail", "primary")
+                bind("teaching-object", ".code-array-rail", "primary", occupancy="major")
                 bind("object-labels", ".code-array-name", "context")
                 bind("expression", ".code-expression", "secondary")
-                bind("result", ".code-result", "secondary")
-        elif kind in {"compare", "steps", "diagram"}: bind("teaching-object", ".visual", "primary")
-        elif kind in {"number", "progress"}: bind("teaching-object", f".{kind}-visual", "primary")
-        elif kind == "notification": bind("teaching-object", ".notice", "primary")
+                bind("result", ".code-result", "secondary", occupancy="major")
+        elif kind in {"compare", "steps", "diagram"}: bind("teaching-object", ".visual", "primary", occupancy="major")
+        elif kind in {"number", "progress"}: bind("teaching-object", f".{kind}-visual", "primary", occupancy="major")
+        elif kind == "notification": bind("teaching-object", ".notice", "primary", occupancy="major")
         elif kind == "cta": bind("action", ".cta-action", "secondary")
         else: bind("explanation", ".supporting, .program-context", "secondary")
         bind("resource", ".scene-resource", "context")
+        if scene.get("brand_logo"):
+            bind("brand-logo", ".brand-logo-frame", "primary", occupancy="major")
         authored = deepcopy(scene.get("composition", {}))
         validate_contract(authored, frame)
         overrides = {e["id"]: e for e in authored.pop("elements", [])}

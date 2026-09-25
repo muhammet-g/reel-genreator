@@ -10,6 +10,7 @@ from .motion_storyboard import storyboard_approval_valid
 from .motion_layout import validate_contract
 from .motion_code import validate_code_array
 from .motion_choreography import validate_choreography, shared_arrays
+from .style_system import NEUTRAL as DEFAULT_STYLE, load_style
 
 SCENE_TYPES = {"typography", "statement", "number", "compare", "steps", "diagram", "progress",
                "notification", "section", "cta"}
@@ -20,14 +21,6 @@ EXITS = {"fade", "slide", "hold"}
 TRANSITIONS = {"cut", "fade", "push", "wipe", "carry", "focus"}
 DENSITIES = {"low", "medium", "high"}
 ENERGIES = {"calm", "balanced", "energetic"}
-
-DEFAULT_STYLE = {
-    "schema_version": 1, "name": "motion-foundation",
-    "colors": {"background": "#111927", "foreground": "#f5f2e9", "muted": "#a6b7c5",
-               "accent": "#76ddc8", "secondary": "#ffb56b", "surface": "#1d2a3a"},
-    "font_family": "ReelArabic, ReelLatin, Arial, sans-serif",
-    "radius": 28,
-}
 
 
 def _text(scene, key, *, required=False, limit=110):
@@ -75,6 +68,8 @@ def validate_motion_plan(plan: dict, board: dict, total: float) -> dict:
             raise ValueError(f"Scene {scene['id']} has invalid headline_direction.")
         _text(scene, "body", limit=150)
         _text(scene, "action", limit=36)
+        if "brand_logo" in scene and type(scene["brand_logo"]) is not bool:
+            raise ValueError(f"Scene {scene['id']} needs a boolean brand_logo request.")
         if scene["type"] in ("compare", "steps", "diagram"):
             items = scene.get("items")
             minimum = 2
@@ -149,15 +144,3 @@ def import_motion_plan(p: Path, source: str | Path) -> Path:
     target = Path(p) / "motion-plan.json"
     save(target, plan)
     return target
-
-
-def load_style(p: Path) -> dict:
-    path = Path(p) / "motion-style.json"
-    style = load(path) if path.exists() else DEFAULT_STYLE
-    if style.get("schema_version") != 1 or not isinstance(style.get("colors"), dict):
-        raise ValueError("Motion style needs schema_version 1 and color tokens.")
-    import re
-    for key in DEFAULT_STYLE["colors"]:
-        if not re.fullmatch(r"#[0-9a-fA-F]{6}", str(style["colors"].get(key, ""))):
-            raise ValueError(f"Motion style color {key} must be a six-digit hex value.")
-    return style

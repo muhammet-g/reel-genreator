@@ -6,7 +6,7 @@ import math
 import re
 
 FAMILIES = {"staged", "construct", "evaluate", "count", "tokens", "extract", "end-focus", "focus-step", "simplify", "behavior-compare"}
-BEATS = {"build", "indexes", "expression", "focus", "result", "count", "reduce", "compare"}
+BEATS = {"build", "indexes", "expression", "focus", "result", "count", "reduce", "compare", "headline"}
 
 
 def validate_choreography(scene):
@@ -58,6 +58,20 @@ def validate_choreography(scene):
         at = step.get("at")
         if type(at) not in (int, float) or not math.isfinite(at) or not last < at <= duration - .6:
             raise ValueError("Reasoning steps need ordered times inside the scene.")
+        last = at
+    editor_comments = visual.get("editor_comments", [])
+    if not isinstance(editor_comments, list) or len(editor_comments) > 3:
+        raise ValueError("Teaching editor needs at most three comments.")
+    last = -1
+    for comment in editor_comments:
+        if not isinstance(comment, dict) or any(
+            not isinstance(comment.get(key), str) or not comment[key] or len(comment[key]) > 40
+            for key in ("arabic", "ltr")
+        ):
+            raise ValueError("Teaching comments need Arabic prose and an isolated LTR expression.")
+        at = comment.get("at")
+        if type(at) not in (int, float) or not math.isfinite(at) or not last < at <= duration - .3:
+            raise ValueError("Teaching comments need ordered scene-relative times.")
         last = at
     if value["family"] in ("extract", "behavior-compare"):
         result = visual.get("result", {})

@@ -86,4 +86,26 @@ class GeneralCompositionTests(unittest.TestCase):
         self.assertEqual(report["error_count"], 0)
         self.assertTrue({"readability", "reading-demand", "context-dominance"} <= {f["code"] for f in report["findings"]})
 
+    def test_major_teaching_surfaces_expose_occupied_regions_and_flag_stacking(self):
+        plan = fixture.fixture_plan()
+        plan["scenes"][0]["code_array"] = {"object_id": "items"}
+        plan["scenes"][0]["choreography"] = {"family": "count"}
+        plan["scenes"][0]["brand_logo"] = True
+        model = composition_model(plan, FRAME)
+        bindings = {e["id"]: e for e in model["scenes"][0]["elements"]}
+        self.assertEqual(bindings["code-editor"]["occupancy"], "major")
+        self.assertEqual(bindings["brand-logo"]["occupancy"], "major")
+        self.assertEqual(bindings["count-connector"]["occupancy"], "support")
+        observations = self.measurement(model)
+        observations["samples"][0]["objects"] = [
+            {"id": "teaching-object", "role": "primary", "visible": True, "box": [100, 800, 700, 200]},
+            {"id": "code-editor", "role": "secondary", "visible": True, "box": [100, 500, 700, 200]},
+            {"id": "resource", "role": "context", "visible": True, "box": [700, 600, 80, 80]},
+        ]
+        report = analyze(model, observations)
+        self.assertIn("major-surface-overlap", {f["code"] for f in report["findings"]})
+        self.assertIn("code-editor", {r["id"] for r in report["occupied_regions"][model["scenes"][0]["id"]][0]["regions"]})
+        model["scenes"][0]["reserved_areas"] = [[700, 600, 80, 80]]
+        self.assertIn("reserved-area", {f["code"] for f in analyze(model, observations)["findings"]})
+
 if __name__ == "__main__": unittest.main()

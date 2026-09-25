@@ -2,6 +2,7 @@
 const timeline = gsap.timeline({paused:true});
 const densityScale = {low:.8,medium:1,high:1.12}[MOTION.motion_density];
 const energyScale = {calm:.83,balanced:1,energetic:1.12}[MOTION.visual_energy];
+const flavor = {arrival_ease:'power3.out',rise_px:90,slide_px:105,settle_scale:.88,part_rise_px:20,...(MOTION.motion_flavor||{})};
 timeline.to('#reel-progress',{scaleX:1,duration:MOTION.duration,ease:'none'},0);
 
 MOTION.scenes.forEach((scene,index)=>{
@@ -13,17 +14,19 @@ MOTION.scenes.forEach((scene,index)=>{
   const emphasisAt = Math.min(end-leave-.35,start+Math.max(enter+.18,length*.46));
   const inner = root+' .scene-inner';
   timeline.set(root,{visibility:'visible'},start);
+  const motif=document.querySelector(root+' .scene-brand-motif');
+  if(motif) timeline.fromTo(motif,{opacity:0},{opacity:.7,duration:Math.min(.25,enter),ease:'power2.out'},start+enter*.5);
   const incoming = {opacity:0,y:0,x:0,scale:1,clipPath:'inset(0 0 0 0)'};
   const entrance=scene.motion.entrance==='auto'?({compare:'settle',steps:'staged',diagram:'staged',typography:'mask'}[scene.type]||'settle'):scene.motion.entrance;
-  if(entrance==='rise') incoming.y=90;
-  else if(entrance==='slide') incoming.x=105;
-  else if(entrance==='scale' || entrance==='settle' || entrance==='focus') incoming.scale=.88;
+  if(entrance==='rise') incoming.y=flavor.rise_px;
+  else if(entrance==='slide') incoming.x=flavor.slide_px;
+  else if(entrance==='scale' || entrance==='settle' || entrance==='focus') incoming.scale=flavor.settle_scale;
   else if(entrance==='reveal' || entrance==='mask') incoming.clipPath='inset(0 0 100% 0)';
   // A scene's explicit entrance owns direction; global transitions never add a push.
   if((scene.transition||MOTION.transition_family)==='wipe' && index>0) incoming.clipPath='inset(0 0 100% 0)';
-  timeline.fromTo(inner,incoming,{opacity:1,y:0,x:0,scale:1,clipPath:'inset(0 0 0 0)',duration:enter,ease:'power3.out'},start);
+  timeline.fromTo(inner,incoming,{opacity:1,y:0,x:0,scale:1,clipPath:'inset(0 0 0 0)',duration:enter,ease:flavor.arrival_ease},start);
   const parts = root+' .motion-part';
-  if(document.querySelector(parts)) timeline.fromTo(parts,{opacity:0,y:20},{opacity:1,y:0,duration:Math.min(.3,length*.12),stagger:.075/densityScale,ease:'power2.out'},start+.13);
+  if(document.querySelector(parts)) timeline.fromTo(parts,{opacity:0,y:flavor.part_rise_px},{opacity:1,y:0,duration:Math.min(.3,length*.12),stagger:.075/densityScale,ease:'power2.out'},start+.13);
   if(scene.type==='number'){
     const counter=document.querySelector(root+' .counter'), target=Number(counter.dataset.target), count={value:0};
     timeline.to(count,{value:target,duration:Math.min(1.25,length*.42),ease:'power2.out',onUpdate:()=>{counter.textContent=Number.isInteger(target)?Math.round(count.value).toLocaleString('en-US'):count.value.toFixed(1)}},start+enter*.5);

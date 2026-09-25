@@ -11,6 +11,7 @@ from .core import ROOT, digest, ffmpeg, load, save
 from .motion_audio import verify_master
 from .motion_storyboard import storyboard_approval_valid
 from .motion_design import load_style, validate_motion_plan
+from .style_system import adapt_base_css, caption_presentation_css, install_brand_logo, install_fonts, presentation_css, scene_motif
 from .motion_code import code_array_html
 from .motion_layout_adapter import composition_model, composition_css
 from .motion_program import program_html, shared_array_html
@@ -111,13 +112,17 @@ def build_motion_composition(p: Path) -> Path:
     groups = shared_arrays(plan["scenes"])
     shared_html = "".join(shared_array_html(group) for group in groups)
     save(out / "motion-design-check.json", motion_advisories(plan))
+    font_css, font_manifest = install_fonts(style, assets)
     fonts = ROOT / "node_modules/@fontsource/noto-sans-arabic/files"
-    font_css = ""
     for subset, family in (("arabic", "ReelArabic"), ("latin", "ReelLatin")):
         filename = f"noto-sans-arabic-{subset}-600-normal.woff2"
-        if (fonts / filename).exists():
-            shutil.copy2(fonts / filename, assets / filename)
-            font_css += f'@font-face{{font-family:{family};src:url(assets/{filename});font-weight:600}}'
+        if not (fonts / filename).is_file():
+            raise FileNotFoundError(f"Neutral fallback font missing: {fonts / filename}. Run npm ci.")
+        shutil.copy2(fonts / filename, assets / filename)
+        font_css += f'@font-face{{font-family:{family};src:url(assets/{filename});font-weight:600}}'
+    shutil.copy2(ROOT / "node_modules/@fontsource/noto-sans-arabic/LICENSE", assets / "FONT-LICENSE-noto-sans-arabic.txt")
+    save(out / "font-manifest.json", {"profile": style["name"], "faces": font_manifest})
+    logo_file = install_brand_logo(style, assets) if any(scene.get("brand_logo") for scene in plan["scenes"]) else None
     scenes = []
     selected_resources = []
     sequences = []
@@ -190,10 +195,14 @@ def build_motion_composition(p: Path) -> Path:
         code_class = " code-array-scene" if scene.get("code_array") else ""
         if scene.get("choreography"):
             code_class += " semantic-scene" + (" programming-scene" if scene.get("code_array") else " semantic-hook")
+        motif = scene_motif(style, scene)
+        motif_html = f'<div class="scene-brand-motif motif-{motif}" aria-hidden="true"></div>' if motif and motif != "none" else ""
+        logo_html = (f'<div class="brand-logo-frame" data-component="brand-logo"><img class="brand-logo" '
+                     f'src="assets/{logo_file}" alt="Code Dragon"></div>') if scene.get("brand_logo") else ""
         scenes.append(f'<section id="scene-{i}" class="clip scene type-{scene["type"]} layout-{layout}{code_class}" '
                       f'dir="{_esc(scene.get("headline_direction", "auto"))}" '
                       f'data-start="{start}" data-duration="{end-start}" data-track-index="1" '
-                      f'data-layout-allow-overlap="true"><div class="scene-inner">{parts}</div></section>')
+                      f'data-layout-allow-overlap="true">{motif_html}{logo_html}<div class="scene-inner">{parts}</div></section>')
     captions = []
     for i, cap in enumerate(plan["captions"]):
         captions.append(f'<div id="caption-{i}" class="clip caption" dir="{_esc(cap.get("direction", "auto"))}" '
@@ -201,14 +210,22 @@ def build_motion_composition(p: Path) -> Path:
                         f'data-track-index="3" data-layout-allow-overlap="true"><span>{caption_html(cap["text"])}</span></div>')
     model = composition_model(plan, frame, board)
     save(out / "composition-model.json", model)
-    css = (ROOT / "templates" / "motion-only.css").read_text(encoding="utf-8")
+    css = adapt_base_css(style, (ROOT / "templates" / "motion-only.css").read_text(encoding="utf-8"))
+    css += "\n" + presentation_css(style)
     css += "\n" + composition_css(model)
+    css += "\n" + caption_presentation_css(style, model, plan["captions"])
     js = (ROOT / "templates" / "motion-only.js").read_text(encoding="utf-8")
     js += "\n" + (ROOT / "templates" / "motion-program.js").read_text(encoding="utf-8")
     tokens = "".join(f"--{key}:{value};" for key, value in style["colors"].items())
+    motif_attributes = " ".join(f'data-motif-{key.replace("_", "-")}="{str(enabled).lower()}"'
+                                for key, enabled in style.get("motifs", {}).items())
     config = json.dumps({"duration": state["duration"], "scenes": plan["scenes"], "captions": plan["captions"],
                          "transition_family": plan["transition_family"], "motion_density": plan["motion_density"],
-                         "visual_energy": plan["visual_energy"], "sequences": sequences, "shared_arrays": groups, "composition": model}, ensure_ascii=False).replace("</", "<\\/")
+                         "visual_energy": plan["visual_energy"], "sequences": sequences, "shared_arrays": groups, "composition": model,
+                         "motion_flavor": style.get("motion_flavor", {}),
+                         "presentation_colors": ({"focused": style["surface"]["focused"], "surface": style["surface"]["code_panel"],
+                                                   "accent": style["code"]["active"], "count": style["colors"]["accent_warm"]}
+                                                  if style["name"] == "code-dragon-v1" else None)}, ensure_ascii=False).replace("</", "<\\/")
     language = plan.get("language") or ("ar" if any(__import__("re").search(r"[\u0600-\u06ff]", scene["headline"]) for scene in plan["scenes"]) else "en")
     arabic = language.lower().split("-")[0] == "ar"
     default_decorations = ({"top_left": "", "top_right": "", "bottom_text": ""} if arabic else
@@ -220,8 +237,8 @@ def build_motion_composition(p: Path) -> Path:
     bottom_label = f'<span>{_esc(decorations["bottom_text"])}</span>' if decorations["bottom_text"] else ""
     document = f'''<!doctype html><html lang="{_esc(language)}"><head><meta charset="utf-8"><title>{_esc(p.name)} Motion-Only</title>
 <script src="assets/gsap.min.js"></script><script src="assets/MotionPathPlugin.min.js"></script><style>{font_css}\n#reel{{{tokens}}}\n{css}</style></head>
-<body><main id="reel" data-composition-id="reel" data-start="0" data-width="{frame["width"]}" data-height="{frame["height"]}" data-duration="{state["duration"]}" data-fps="{frame["fps"]}">
-<div class="background-grid"></div><div class="ambient ambient-one"></div><div class="ambient ambient-two"></div>
+<body><main id="reel" data-style="{_esc(style["name"])}" data-caption-code-emphasis="{str(style.get("caption", {}).get("emphasize_code", False)).lower()}" {motif_attributes} data-composition-id="reel" data-start="0" data-width="{frame["width"]}" data-height="{frame["height"]}" data-duration="{state["duration"]}" data-fps="{frame["fps"]}">
+<div class="background-grid"></div><div class="ambient ambient-one"></div><div class="ambient ambient-two"></div><div class="style-motifs" aria-hidden="true"><i class="motif-amber-rule"></i><i class="motif-orbital-line"></i><i class="motif-terminal-dots"></i></div>
 {top_rule}
 {''.join(scenes)}{shared_html}{''.join(media_overlays)}{''.join(captions)}<div class="bottom-rule">{bottom_label}<i id="reel-progress"></i></div></main>
 <script>const MOTION={config};\n{js}</script></body></html>'''

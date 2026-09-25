@@ -86,6 +86,7 @@ def analyze(model, measurements):
         entry = {"severity": severity, "code": code, "scene": scene, "detail": detail}
         if entry not in findings: findings.append(entry)
     signatures = []
+    occupied_regions = {}
     for scene in model["scenes"]:
         ident = scene["id"]
         samples = [s for s in measurements.get("samples", []) if s["scene"] == ident]
@@ -95,9 +96,13 @@ def analyze(model, measurements):
         safe = scene["safe_area"]
         primary_seen = False
         occupancies, primary_areas = [], []
+        major_ids = {element["id"] for element in scene["elements"] if element.get("occupancy") == "major"}
+        occupied_regions[ident] = []
         for sample in samples:
             objects = sample["objects"]
             visible = [o for o in objects if o["visible"]]
+            occupied_regions[ident].append({"time": sample.get("time"), "regions": [
+                {"id": o["id"], "box": o["box"]} for o in visible if o["id"].split("#")[0] in major_ids]})
             primary = [o for o in visible if o["role"] == "primary"]
             primary_seen |= bool(primary)
             primary_areas.append(union_area([o["box"] for o in primary])/(safe[2]*safe[3]))
@@ -105,7 +110,9 @@ def analyze(model, measurements):
             for index, a in enumerate(visible):
                 for b in visible[index+1:]:
                     if intersects(a["box"], b["box"]):
-                        add("advisory", "content-overlap-risk", ident, f'{a["id"]} / {b["id"]}; review intentional layering.')
+                        major = a["id"].split("#")[0] in major_ids or b["id"].split("#")[0] in major_ids
+                        code = "major-surface-overlap" if major else "content-overlap-risk"
+                        add("advisory", code, ident, f'{a["id"]} / {b["id"]}; review occupied regions before rendering.')
             for o in visible:
                 if not contains(safe, o["box"]): add("error", "safe-area", ident, o["id"])
                 if o.get("clipped"): add("error", "clipping", ident, o["id"])
@@ -138,4 +145,5 @@ def analyze(model, measurements):
     for error in measurements.get("errors", []): add("error", "browser-runtime", "document", error)
     return {"schema_version": 1, "error_count": sum(f["severity"] == "error" for f in findings),
             "advisory_count": sum(f["severity"] == "advisory" for f in findings), "findings": findings,
+            "occupied_regions": occupied_regions,
             "scope": "Sampled geometry and text metrics; does not certify aesthetic quality or unsampled animation frames."}

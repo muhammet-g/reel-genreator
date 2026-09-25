@@ -1,6 +1,7 @@
 // Semantic operations share real object identities. All changes belong to the seekable timeline.
 gsap.registerPlugin(MotionPathPlugin);
 const objectState = new Map();
+const semanticColors = MOTION.presentation_colors || {focused:'#244b52',surface:'#1d2a3a',accent:'#76ddc8',count:'#ffb56b'};
 const tween = (target,vars,at) => {if(target && (!Array.isArray(target)||target.length)) timeline.to(target,{...vars,overwrite:false},at);};
 const reveal = (target,at,duration=.4,extra={}) => tween(target,{opacity:1,scale:1,y:0,clipPath:'inset(0% 0% 0% 0%)',duration,ease:'power2.out',...extra},at);
 
@@ -27,6 +28,11 @@ MOTION.scenes.forEach((scene,index)=>{
   const length=end-start, beat=(name,fraction)=>start+(c.beats?.[name]??length*fraction);
   const heading=root.querySelector('.headline'), eyebrow=root.querySelector('.eyebrow');
   gsap.set([heading,eyebrow],{opacity:0});
+  const motif=root.querySelector('.scene-brand-motif');
+  if(motif){
+    gsap.set(motif,{opacity:0});
+    reveal(motif,c.family==='construct'?beat('build',.08)+.4:start+.08,.2,{opacity:.7});
+  }
   timeline.set(root,{visibility:'visible'},start);
   timeline.set(root,{visibility:'hidden'},end);
   if(c.family==='staged'){
@@ -42,15 +48,18 @@ MOTION.scenes.forEach((scene,index)=>{
   }
   // Headers update; the array stays fixed throughout the teaching sequence.
   gsap.set(heading,{clipPath:'inset(0% 0% 100% 0%)'});
-  reveal(heading,start+.08,.36); reveal(eyebrow,start,.25);
+  const headlineIsTimed=c.beats && c.beats.headline!==undefined;
+  reveal(heading,beat('headline',.08),headlineIsTimed ? .16 : .36); reveal(eyebrow,start,.25);
   tween([heading,eyebrow],{opacity:0,duration:.18},end-.18);
   const visual=scene.code_array, object=objectState.get(visual.object_id);
   const {root:array,cells,ring,centers,base}=object;
   const panel=root.querySelector('.code-program'), expression=panel.querySelector('.program-expression');
+  const editor=panel.querySelector('.teaching-editor');
   const tokens=[...panel.querySelectorAll('.program-token')];
   const result=panel.querySelector('.program-result');
   if(tokens.length) gsap.set(tokens,{opacity:0});
   if(result) gsap.set(result,{opacity:0});
+  if(editor) gsap.set(editor,{opacity:0,visibility:'hidden'});
   const focus=(which,at,{fromEnd=false}={})=>{
     const destination=Math.round(centers[which].x-centers[0].width/2-base.x);
     if(fromEnd){
@@ -62,8 +71,8 @@ MOTION.scenes.forEach((scene,index)=>{
     const origin=object.ringVisible?Math.round(centers[object.lastIndex].x-centers[0].width/2-base.x):destination;
     timeline.fromTo(ring,{x:fromEnd?destination:origin,y:fromEnd?62:0,scale:fromEnd?.65:1},
       {x:destination,y:0,scale:1,duration:.58,ease:'power2.inOut',immediateRender:false},at);
-    cells.forEach((cell,i)=>tween(cell,{backgroundColor:i===which?'#244b52':'#1d2a3a',duration:.28},at+.3));
-    tween(array.querySelectorAll('.program-index')[which],{color:'#76ddc8',scale:1.15,duration:.2,repeat:1,yoyo:true},at+.52);
+    cells.forEach((cell,i)=>tween(cell,{backgroundColor:i===which?semanticColors.focused:semanticColors.surface,duration:.28},at+.3));
+    tween(array.querySelectorAll('.program-index')[which],{color:semanticColors.accent,scale:1.15,duration:.2,repeat:1,yoyo:true},at+.52);
     object.lastIndex=which;object.ringVisible=true;
   };
   const showResult=at=>{if(result) reveal(result,at,.4);};
@@ -84,16 +93,22 @@ MOTION.scenes.forEach((scene,index)=>{
   };
   if(c.family==='construct'){
     reveal(array.querySelector('.program-variable'),beat('build',.08),.3);
-    gsap.set(array.querySelector('.program-container'),{scaleX:.1});
-    reveal(array.querySelector('.program-container'),beat('build',.08)+.2,.45,{scaleX:1});
+    // The rail and all of its chrome enter with the first real cell, never as an empty shell.
+    gsap.set(array.querySelector('.program-container'),{scaleX:1});
+    reveal(array.querySelector('.program-container'),beat('build',.08)+.4,.35);
     cells.forEach((cell,i)=>{
       gsap.set(cell,{scale:.82});reveal(cell,beat('build',.08)+.4+i*.28,.35);
     });
     [...array.querySelectorAll('.program-index')].forEach((node,i)=>reveal(node,beat('indexes',.56)+i*.13,.25));
   }
   const tokenBase=beat('expression',.10);
-  tokens.forEach((token,i)=>reveal(token,visual.token_times?start+visual.token_times[i]:tokenBase+i*.2,.32));
   const previous=expression.querySelector('.previous-expression');
+  if(!previous){
+    const firstTokenAt=visual.token_times?start+visual.token_times[0]:tokenBase;
+    gsap.set(expression,{opacity:0});
+    reveal(expression,firstTokenAt,.25);
+  }
+  tokens.forEach((token,i)=>reveal(token,visual.token_times?start+visual.token_times[i]:tokenBase+i*.2,.32));
   if(previous){
     const at=beat('expression',.1);
     gsap.set(expression.querySelector('.current-expression'),{opacity:0});
@@ -112,23 +127,42 @@ MOTION.scenes.forEach((scene,index)=>{
     focus(visual.selected_index,beat('focus',.65));
   }
   if(c.family==='count'){
-    timeline.set(array.querySelector('.count-connector'),{visibility:'visible'},beat('count',.12));
-    cells.forEach((cell,i)=>tween(cell,{borderColor:'#ffb56b',duration:.18,repeat:1,yoyo:true},beat('count',.12)+i*.4));
-    tween(array.querySelector('.count-connector path'),{strokeDashoffset:0,duration:.8,ease:'power2.inOut'},beat('count',.12));
+    // A large editor surface occupies the connector's region; do not stack redundant chrome.
+    const connector=editor?null:array.querySelector('.count-connector');
+    if(connector) timeline.set(connector,{visibility:'visible'},beat('count',.12));
+    cells.forEach((cell,i)=>tween(cell,{borderColor:semanticColors.count,duration:.18,repeat:1,yoyo:true},beat('count',.12)+i*.4));
+    if(connector) tween(connector.querySelector('path'),{strokeDashoffset:0,duration:.8,ease:'power2.inOut'},beat('count',.12));
     const steps=[...panel.querySelectorAll('.reason-step')];
     gsap.set(steps,{opacity:0});steps.forEach((step,i)=>reveal(step,start+visual.reasoning[i].at,.3));
+    const comments=[...panel.querySelectorAll('.editor-comment')];
+    gsap.set(comments,{opacity:0,y:9});
+    if(editor){
+      const enter=start+visual.editor_comments[0].at;
+      timeline.set(editor,{visibility:'visible'},enter);
+      reveal(editor,enter,.22);
+      tween(editor,{opacity:0,duration:.18},end-.18);
+    }
+    comments.forEach((comment,i)=>{
+      const at=start+visual.editor_comments[i].at;
+      reveal(comment,at,.22);
+      if(i) tween(comments[i-1],{opacity:.55,duration:.2},at);
+    });
     focus(visual.selected_index,beat('focus',.6));
-    tween(array.querySelector('.count-connector path'),{strokeDashoffset:1,duration:.25},end-.25);
-    timeline.set(array.querySelector('.count-connector'),{visibility:'hidden'},end);
+    if(connector){
+      const exitAt=Math.min(end-.25,beat('focus',.6));
+      tween(connector.querySelector('path'),{strokeDashoffset:1,duration:.25},exitAt);
+      timeline.set(connector,{visibility:'hidden'},exitAt+.25);
+    }
   }
   if(c.family==='tokens') focus(visual.selected_index,beat('focus',.7));
   if(c.family==='extract'){focus(visual.selected_index,start+.12);extract(beat('result',.42));}
   if(c.family==='end-focus'){
-    reveal(array.querySelectorAll('.negative-index'),beat('focus',.55)-.2,.25);
+    reveal(array.querySelectorAll('.negative-index')[visual.selected_index],beat('focus',.55)-.2,.25);
     focus(visual.selected_index,beat('focus',.55),{fromEnd:true});showResult(beat('result',.8));
   }
   if(c.family==='focus-step'){
     // The same ring remains at its prior coordinate until this explanatory beat.
+    reveal(array.querySelectorAll('.negative-index')[visual.selected_index],beat('focus',.44),.25);
     focus(visual.selected_index,beat('focus',.44));showResult(beat('result',.7));
   }
   if(c.family==='simplify'){

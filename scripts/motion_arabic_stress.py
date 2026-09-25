@@ -16,6 +16,7 @@ from reelkit.motion_audio import intake_audio, verify_master
 from reelkit.motion_storyboard import import_storyboard, approve_storyboard
 from reelkit.motion_design import import_motion_plan
 from reelkit.motion_render import render_preview, approve_preview, render_final
+from reelkit.style_system import PROFILES
 
 SCENES = [
     ("opening", "hook", "typography", "right-weighted", "تعلّم بخطوات واضحة",
@@ -56,6 +57,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--name", default="motion-arabic-stress")
     parser.add_argument("--prepare-only", action="store_true")
+    parser.add_argument("--style", choices=PROFILES)
     args = parser.parse_args()
     if project(args.name).exists():
         raise ValueError("Fixture project already exists; choose a new --name.")
@@ -97,6 +99,8 @@ def main() -> None:
     import_storyboard(p, board_file)
     approve_storyboard(p, "synthetic fixture generator, not creator approval")
     import_motion_plan(p, plan_file)
+    if args.style:
+        save(p / "motion-style.json", {"style": args.style})
     before = digest(p / "master-audio.wav")
     if not args.prepare_only:
         preview = render_preview(p)
