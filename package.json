@@ -9,15 +9,34 @@
   },
   "scripts": {
     "doctor": "hyperframes doctor",
-    "test": "python3 -m unittest discover -s tests -v"
+    "test": "tsx --test engine-tests/*.test.ts",
+    "test:legacy": "python3 -m unittest discover -s tests -v",
+    "typecheck": "tsc --noEmit",
+    "studio": "remotion studio src/remotion/index.ts",
+    "fixture": "tsx tools/prepare-fixture.ts",
+    "render": "tsx tools/render.ts"
   },
   "dependencies": {
     "@fontsource/cairo": "5.3.0",
     "@fontsource/inter": "5.3.0",
     "@fontsource/jetbrains-mono": "5.3.0",
     "@fontsource/noto-sans-arabic": "5.3.0",
+    "@remotion/bundler": "4.0.529",
+    "@remotion/cli": "4.0.529",
+    "@remotion/renderer": "4.0.529",
     "gsap": "3.15.0",
-    "hyperframes": "0.8.58"
+    "hyperframes": "0.8.58",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "remotion": "4.0.529",
+    "zod": "4.6.5"
   },
-  "author": "E.B.E - powered by E-VIAS"
+  "author": "E.B.E - powered by E-VIAS",
+  "devDependencies": {
+    "@types/node": "24.19.0",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "tsx": "4.20.6",
+    "typescript": "5.9.3"
+  }
 }
