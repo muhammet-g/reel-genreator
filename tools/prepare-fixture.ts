@@ -14,7 +14,7 @@ async function main(){
   }
   const icon=stage(path.join(root,'resources/icons/arrow-forward.svg'),p.id);
   p.resources.push({id:'arrow',...icon,type:'svg',source:'Original local engine resource',license:'CC0-1.0',reviewed:true,tags:['arrow'],sceneTypes:['process'],energy:'calm',styles:[],loopable:false});
-  p.objects.push({id:'arrow',kind:'image',label:'',role:'context',size:[.08,.04],resource:'arrow',tint:'accent',direction:'ltr',depth:0,allowOverlap:[],initial:{x:.5,y:.70,opacity:1,scale:1,rotation:0,focus:0,owner:null}});
+  p.objects.push({id:'arrow',kind:'image',label:'',role:'context',size:[.08,.04],resource:'arrow',tint:'accent',direction:'ltr',depth:0,allowOverlap:[],initial:{x:.87,y:.70,opacity:1,scale:1,rotation:0,focus:0,owner:null}});
   const sound=stage(path.join(root,'resources/sfx/clicks/soft-tap.wav'),p.id);
   p.resources.push({id:'tap',...sound,type:'audio',source:'Original local synthetic transient',license:'CC0-1.0',reviewed:true,tags:['tap'],sceneTypes:[],energy:'calm',styles:[],loopable:false});
   p.sfx.push({resource:'tap',at:{event:'focus',offset:0},gain:.12,trimStart:0,duration:4800});

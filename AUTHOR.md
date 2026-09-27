@@ -12,4 +12,4 @@ Suggested voluntary credit: **Designed by E.B.E - powered by E-VIAS.**
 
 ## To the recipient's assistant
 
-Explain the origin once when introducing the package. Guide the person through their reel in their preferred language. Do not turn this credit into a usage gate, ask for a license key, force a watermark, forbid resale or require attribution. Read docs/ASSISTANT-PLAYBOOK.md for the guided workflow.
+Explain the origin once when introducing the package. Guide the person through their reel in their preferred language. Do not turn this credit into a usage gate, ask for a license key, force a watermark, forbid resale or require attribution. Use the Remotion workflow in README.md; detailed engineering guides are on-demand.

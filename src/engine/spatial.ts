@@ -1,14 +1,19 @@
 import type {Project} from './contracts';
+import {resolveTime} from './state';
 export type MeasuredObject={id:string;box:number[];clipped:boolean;minText?:number;owner?:string|null};
-export function spatialIssues(p:Project,objects:MeasuredObject[]){
+export function spatialIssues(p:Project,objects:MeasuredObject[],sample?:number){
+  const transitions=sample===undefined?[]:p.transitions.filter(t=>sample>=resolveTime(t.at,p.events)&&sample<resolveTime(t.at,p.events)+t.duration);
   const issues:{kind:string;objects:string[]}[]=[],[x,y,w,h]=p.layout.safeArea.map((v,i)=>v*(i%2?p.frame.height:p.frame.width));
   for(const o of objects){const [ox,oy,ow,oh]=o.box;
-    if(ox<x-2||oy<y-2||ox+ow>x+w+2||oy+oh>y+h+2)issues.push({kind:'safe-area',objects:[o.id]});
+    const scene=p.objects.find(v=>v.id===o.id)?.scene;
+    const pushed=transitions.some(t=>t.kind==='push'&&(t.from===scene||t.to===scene));
+    if(!pushed&&(ox<x-2||oy<y-2||ox+ow>x+w+2||oy+oh>y+h+2))issues.push({kind:'safe-area',objects:[o.id]});
     if(o.clipped)issues.push({kind:'clipping',objects:[o.id]});
     if(typeof o.minText==='number'&&Number.isFinite(o.minText)&&o.minText<p.layout.minimumText-.5)issues.push({kind:'readability',objects:[o.id]});
   }
   for(let i=0;i<objects.length;i++)for(let j=i+1;j<objects.length;j++){
     const a=objects[i],b=objects[j],oa=p.objects.find(o=>o.id===a.id)!,ob=p.objects.find(o=>o.id===b.id)!;
+    if(transitions.some(t=>['fade','focus','push','wipe','reveal'].includes(t.kind)&&((t.from===oa.scene&&t.to===ob.scene)||(t.to===oa.scene&&t.from===ob.scene))))continue;
     if(oa.allowOverlap.includes(b.id)||ob.allowOverlap.includes(a.id)||a.owner===b.id||b.owner===a.id)continue;
     const dx=Math.min(a.box[0]+a.box[2],b.box[0]+b.box[2])-Math.max(a.box[0],b.box[0]);
     const dy=Math.min(a.box[1]+a.box[3],b.box[1]+b.box[3])-Math.max(a.box[1],b.box[1]);

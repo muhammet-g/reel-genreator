@@ -28,3 +28,11 @@ test('selected resources cannot silently use unsupported media or unsafe paths',
   const p=structuredClone(fixture);p.audio.src='../source.wav';assert.throws(()=>validateProject(p),/Unsafe/);
   const q=structuredClone(fixture);q.objects[0].kind='image';assert.throws(()=>validateProject(q),/requires resource/);
 });
+test('transition overlap is intentional only during the declared scene blend',()=>{
+  const p=structuredClone(fixture);p.objects[0].scene='result';p.objects[0].allowOverlap=[];
+  p.transitions[0].kind='fade';p.transitions[0].shared=[];
+  const items=[{id:'token',box:[300,400,300,200],clipped:false},{id:'title',box:[300,400,300,200],clipped:false}];
+  assert.deepEqual(spatialIssues(p,items,150000),[]);
+  assert.equal(spatialIssues(p,items,180000)[0].kind,'collision');
+  p.transitions.push({...p.transitions[0]});assert.throws(()=>validateProject(p),/Duplicate outgoing transition/);
+});

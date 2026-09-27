@@ -6,7 +6,7 @@ import path from 'node:path';
 import {createHash} from 'node:crypto';
 import sharp from 'sharp';
 import {validateProject} from '../src/engine/validate';
-import {frameCount,sampleToFrame} from '../src/engine/time';
+import {frameCount,sampleToFrame,frameToSample} from '../src/engine/time';
 import {resolveTime} from '../src/engine/state';
 import {spatialIssues} from '../src/engine/spatial';
 import {root,publicDir,verifyAssets} from './media';
@@ -46,7 +46,7 @@ async function main(){
           clipped:[...e.querySelectorAll('[data-text]')].some(n=>(n as HTMLElement).scrollWidth>(n as HTMLElement).clientWidth+1||(n as HTMLElement).scrollHeight>(n as HTMLElement).clientHeight+1)})),
           caption:document.querySelector('[data-caption]')?{box:box(document.querySelector('[data-caption]')!),text:box(document.querySelector('[data-caption] [data-text]')!)}:null};
       });samples.push({frame,...observed});
-      for(const issue of spatialIssues(p,observed.objects))violations.push({frame,...issue});
+      for(const issue of spatialIssues(p,observed.objects,frameToSample(frame,p.audio.sampleRate,p.frame.fps)))violations.push({frame,...issue});
       if(observed.caption){const [x,y,w,h]=observed.caption.text,[zx,zy,zw,zh]=p.layout.captionZone.map((v,i)=>v*(i%2?p.frame.height:p.frame.width));if(Math.abs(x+w/2-p.frame.width/2)>2||x<zx-2||y<zy-2||x+w>zx+zw+2||y+h>zy+zh+2)violations.push({frame,kind:'caption-bounds'});}
     }
     const hashes:unknown[]=[];

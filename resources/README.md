@@ -1,9 +1,10 @@
-# Local Motion-Only resource library
+# Local resources
 
-Use `python reel.py import-resource path/to/asset` to inspect and register one local asset. A bare import remains unreviewed. The v2 manifest at `manifests/resources.json` records its content hash, media metadata, semantic/style tags, compatible scene types, source, license, safety, and intended use. The importer rejects duplicate content, invalid paths and unknown formats. Reimporting the same ID and hash uses cached metadata; `refresh-resource ID` reinspects changed content and revokes approval. Resources remain local; the importer performs no search or download.
+Use `catalog.json` for the Remotion planner and `tools/resources.ts` to stage a
+selected asset with hash verification. Read `docs/resources.md` only for resource,
+SFX or style work. No provider or upload is needed.
 
-Resource selection uses approved local entries whose scene type and tags fit the visual plan and whose `safe_for_motion_only` flag is true. An unreviewed or blocked entry is never selected. Images and videos default to false for that flag; `--motion-only-safe` marks one reviewed import as eligible. If nothing fits, the composition uses its built-in component. Source and license details are provenance records, not a claim that the engine has independently verified rights. Metadata cannot prove that an image is compliant; the reviewer must inspect the actual asset.
-
-Folders cover `motion/{transitions,text-effects,notifications,callouts,lower-thirds,counters,loaders,arrows,infographic,misc}`, `overlays/{grain,noise,paper,light,textures}`, `video/{alpha,standard}`, `sfx/{clicks,pops,impacts,whooshes,swipes,typing,page-turns,notifications}`, plus `image-sequences`, `icons`, `svg`, `lottie`, `images`, `fonts`, and `manifests`. The importer also accepts compatible legacy category names.
-
-SVG, static images, supported MP4/WebM, numbered PNG sequences and nonmusical SFX render inside Motion-Only projects. Transparent VP9 WebM was verified locally. MOV and Lottie are metadata-only. The importer does not read `.aep` files. See [Resource System v2](../docs/resource-system.md) for import examples, placement, selection, SFX, and After Effects export settings.
+`manifests/resources.json` retains original provenance and richer inspection data
+for historical assets. It is on-demand reference data, not a runtime dependency.
+The image sequence and alpha video remain preserved; the current core renders
+images/SVG and audio, and rejects unsupported visual media rather than guessing.

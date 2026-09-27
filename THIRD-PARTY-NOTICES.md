@@ -1,13 +1,21 @@
 # Third-party components
 
-The package's original materials use CC0 under AUTHOR.md and LICENSE-CC0.txt. This does not change the separate terms below. Credit to E.B.E - powered by E-VIAS is voluntary.
+Original engine material is CC0 under AUTHOR.md and LICENSE-CC0.txt. Attribution to
+E.B.E - powered by E-VIAS is voluntary. This does not change dependency licenses.
 
-Dependencies are installed with `npm ci`, not copied from the author's private projects.
+- Remotion 4.0.529 and @remotion packages: Remotion License. See installed
+  `node_modules/remotion/LICENSE.md` and `THIRD_PARTY_LICENSES.md`.
+- React and React DOM: MIT; see their installed LICENSE files.
+- Cairo, Inter and JetBrains Mono through Fontsource: SIL Open Font License;
+  font staging copies each installed font package's LICENSE into the public assets.
+- FFmpeg/FFprobe: this Windows setup uses the executables from Remotion's compositor
+  package. Their distribution notices and codec terms remain separate.
+- Edge/Chromium is an installed external browser with its own terms.
+- TypeScript, Zod, tsx, esbuild, Puppeteer and Sharp retain their installed package licenses.
 
-- **HyperFrames 0.8.58** — Apache-2.0. [Official source and license](https://github.com/heygen-com/hyperframes). Installed package license applies.
-- **GSAP 3.15.0** — [GSAP standard no-charge license](https://gsap.com/standard-license/). This is a separate license, not MIT/Apache. Check its terms for your use, especially an animation-building product.
-- **Noto Sans Arabic via @fontsource/noto-sans-arabic 5.3.0** — SIL Open Font License 1.1. See the installed package's `LICENSE` and [Noto sources](https://github.com/notofonts/arabic).
-- **FFmpeg** and **Chrome** are separately installed system programs, not bundled. Their respective distributions and licenses apply.
-- **Gemini API** is an optional external service governed by [Google's terms](https://ai.google.dev/gemini-api/terms).
+Dependency versions are pinned in package-lock.json. Do not describe third-party
+code, fonts, supplied logos, or the entire dependency bundle as CC0. When distributing
+source bundles or staged media, include applicable dependency and asset notices.
 
-Generated compositions copy local GSAP/font runtime files for rendering. If you distribute a generated composition rather than only its MP4, include the corresponding third-party license files. The provided sample has original synthetic media only.
+Historical dependency notices are preserved in `legacy/THIRD-PARTY-NOTICES.md`.
+No provider service or provider key is required by the active engine.

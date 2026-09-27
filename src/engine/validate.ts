@@ -24,6 +24,7 @@ export function validateProject(input:unknown):Project {
   const tracks=new Map<string,Array<[number,number]>>();
   for(const motion of p.motions){
     ref(motion.target,objects,'motion target');const start=bounds(motion.at,motion.duration);
+    if(motion.control&&(motion.to.x===undefined||motion.to.y===undefined))throw Error('Curved path requires both destination coordinates');
     if(motion.to.owner)ref(motion.to.owner,objects,'owner');
     for(const key of Object.keys(motion.to)){
       const id=`${motion.target}/${key}`,spans=tracks.get(id)??[];
@@ -40,10 +41,12 @@ export function validateProject(input:unknown):Project {
   }
   let cameraEnd=0;
   for(const camera of p.camera){const start=bounds(camera.at,camera.duration);if(start<cameraEnd)throw Error('Camera overlap');cameraEnd=start+camera.duration;if(camera.target)ref(camera.target,objects,'camera target');}
+  unique(p.transitions.map(t=>t.from),'outgoing transition');
   for(const transition of p.transitions){
     const i=p.scenes.findIndex(s=>s.id===transition.from);
     if(i<0||p.scenes[i+1]?.id!==transition.to)throw Error('Transition must connect adjacent scenes');
     if(bounds(transition.at,transition.duration)!==p.scenes[i+1].start)throw Error('Transition must begin at incoming boundary');
+    if(transition.duration>p.scenes[i+1].end-p.scenes[i+1].start)throw Error('Transition extends beyond incoming scene');
     transition.shared.forEach(x=>{ref(x,objects,'shared object');if(p.objects.find(o=>o.id===x)!.scene)throw Error('Shared object must be persistent');});
   }
   const resources=new Set(p.resources.map(r=>r.id));
@@ -58,5 +61,6 @@ export function validateProject(input:unknown):Project {
   p.references.forEach(r=>ref(r.resource,resources,'visual reference'));
   for(const cue of p.sfx){if(typeof cue.at==='number')throw Error('SFX must use a named event');bounds(cue.at,cue.duration);ref(cue.resource,resources,'SFX resource');if(p.resources.find(r=>r.id===cue.resource)!.type!=='audio')throw Error('SFX requires audio resource');}
   for(const box of [p.layout.safeArea,p.layout.captionZone])if(box[0]+box[2]>1||box[1]+box[3]>1)throw Error('Layout zone outside frame');
+  if(p.style.captionSize<p.layout.minimumText)throw Error('Caption text below minimum readable size');
   return p;
 }
