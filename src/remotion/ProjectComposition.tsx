@@ -26,7 +26,7 @@ const Shape:React.FC<{object:VisualObject;state:ObjectState;project:Project;scal
     if(o.tint&&resource.type==='svg')return <div style={{width:'100%',height:'100%',background:palette[o.tint],mask:`url("${staticFile(resource.file)}") center / contain no-repeat`}}/>;
     return <Img src={staticFile(resource.file)} style={{width:'100%',height:'100%',objectFit:'contain'}}/>;
   }
-  if(o.kind==='text')return <div data-text style={base}><MixedText text={label} direction={o.direction}/></div>;
+  if(o.kind==='text')return <div data-text style={{...base,textShadow:s.focus?`0 0 ${12*s.focus}px ${palette.accent}66`:undefined}}><MixedText text={label} direction={o.direction}/></div>;
   if(o.kind==='array')return <div style={{...base,flexDirection:'column',gap:18}} dir="ltr"><div data-text>{label}</div><div style={{display:'flex',gap:10,width:'100%'}}>{o.cells?.map((cell,i)=><div key={i} style={{flex:1,minWidth:0}}><small style={{fontSize:28,color:palette.muted}}>{i}</small><div data-text style={{padding:'20px 8px',border:`2px solid ${s.selected===i?palette.accent:palette.muted}`,borderRadius:12,background:palette.surface}}>{cell}</div></div>)}</div></div>;
   return <div data-text style={{...base,padding:18,border:`${s.focus>.4?3:2}px solid ${s.focus>.4?palette.accent:palette.muted}`,
     background:palette.surface,boxShadow:s.focus?`0 0 ${20*s.focus}px ${palette.accent}55`:undefined,
@@ -45,7 +45,7 @@ export const ProjectComposition:React.FC<{project:Project}>=({project:p})=>{
       const s=objectStateAt(o,p.motions,p.events,sample),transition=transitionState(p,o,sample);
       const parallax=1-o.depth*.35,x=.5+(s.x-camera.x)*camera.zoom+(camera.x-.5)*(1-parallax),y=.5+(s.y-camera.y)*camera.zoom;
       return <div key={o.id} data-object={o.id} data-role={o.role} data-owner={s.owner??''} data-visible={s.opacity*transition.opacity>.01}
-        style={{position:'absolute',zIndex:o.role==='primary'?2:o.role==='secondary'?1:0,left:(x+transition.x)*width,top:y*height,width:o.size[0]*width,height:o.size[1]*height,
+        style={{position:'absolute',zIndex:o.role==='primary'?2:o.role==='secondary'?1:0,left:(x+transition.x)*width,top:(y+transition.y)*height,width:o.size[0]*width,height:o.size[1]*height,
           opacity:s.opacity*transition.opacity,transform:`translate(-50%,-50%) scale(${s.scale*camera.zoom*transition.scale}) rotate(${s.rotation}deg)`,
           clipPath:transition.clip?`inset(0 ${transition.clip*100}% 0 0)`:undefined}}><Shape object={o} state={s} project={p} scale={s.scale*camera.zoom*transition.scale}/></div>;
     })}

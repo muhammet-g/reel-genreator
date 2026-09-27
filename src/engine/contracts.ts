@@ -1,4 +1,5 @@
 import {z} from 'zod';
+import {easingSchema} from './easing';
 
 const tick=z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER);
 const id=z.string().regex(/^[A-Za-z][A-Za-z0-9_-]*$/);
@@ -8,7 +9,7 @@ const unit=finite.min(0).max(1);
 export const trigger=z.union([tick,z.object({event:id,offset:z.number().int().default(0)}).strict()]);
 export const stateSchema=z.object({x:finite,y:finite,scale:finite.positive(),opacity:unit,
   rotation:finite,focus:unit,owner:id.nullable(),label:z.string().optional(),selected:z.number().int().nonnegative().optional()}).strict();
-const easing=z.enum(['linear','smooth','out','in']);
+const easing=easingSchema;
 const box=z.tuple([unit,unit,unit.positive(),unit.positive()]);
 const direction=z.enum(['rtl','ltr','auto']);
 export const resourceSchema=z.object({id,file:z.string().min(1),sha256:hash,
@@ -24,6 +25,7 @@ export const objectSchema=z.object({id,kind:z.enum(['text','function','container
 export const motionSchema=z.object({target:id,at:trigger,duration:tick,
   intent:z.enum(['entrance','emphasis','exit','hold','move','state','path']).default('state'),
   to:stateSchema.partial(),ease:easing.default('smooth'),
+  from:stateSchema.partial().optional(),
   control:z.tuple([finite,finite]).optional()}).strict();
 export const projectSchema=z.object({version:z.literal(1),id,
   frame:z.object({width:z.number().int().positive(),height:z.number().int().positive(),
@@ -43,7 +45,7 @@ export const projectSchema=z.object({version:z.literal(1),id,
     settle:z.boolean()}).strict()),
   transitions:z.array(z.object({from:id,to:id,at:trigger,duration:tick,
     kind:z.enum(['cut','fade','carry','focus','push','wipe','reveal','match','continuation']),
-    shared:z.array(id),reason:z.string().min(1)}).strict()),
+    shared:z.array(id),reason:z.string().min(1),direction:z.enum(['left','right','up','down']).optional(),ease:easing.optional()}).strict()),
   captions:z.array(z.object({id,start:tick,end:tick,text:z.string().min(1),direction,
     status:z.enum(['proposed','verified']),source:z.string().min(1)}).strict()),
   resources:z.array(resourceSchema),

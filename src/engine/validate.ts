@@ -25,6 +25,10 @@ export function validateProject(input:unknown):Project {
   for(const motion of p.motions){
     ref(motion.target,objects,'motion target');const start=bounds(motion.at,motion.duration);
     if(motion.control&&(motion.to.x===undefined||motion.to.y===undefined))throw Error('Curved path requires both destination coordinates');
+    if(motion.from){
+      if(Object.keys(motion.from).some(k=>!(k in motion.to)))throw Error('Motion from requires matching destination properties');
+      if(motion.from.owner)ref(motion.from.owner,objects,'owner');
+    }
     if(motion.to.owner)ref(motion.to.owner,objects,'owner');
     for(const key of Object.keys(motion.to)){
       const id=`${motion.target}/${key}`,spans=tracks.get(id)??[];

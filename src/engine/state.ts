@@ -1,12 +1,10 @@
 import type {Motion,ObjectState,Project,Trigger,VisualObject} from './contracts';
+import {ease} from './easing';
+export {ease} from './easing';
 export function resolveTime(at:Trigger,events:Record<string,number>):number {
   if (typeof at==='number') return at;
   if (!(at.event in events)) throw Error(`Unknown event: ${at.event}`);
   return events[at.event]+at.offset;
-}
-export function ease(t:number,kind:string):number {
-  const v=Math.max(0,Math.min(1,t));
-  return kind==='smooth'?v*v*(3-2*v):kind==='out'?1-(1-v)**3:kind==='in'?v**3:v;
 }
 export function objectStateAt(object:VisualObject,motions:Motion[],events:Record<string,number>,sample:number):ObjectState {
   const state={...object.initial};
@@ -14,7 +12,7 @@ export function objectStateAt(object:VisualObject,motions:Motion[],events:Record
     const start=resolveTime(motion.at,events);
     if(sample<start) break;
     const p=ease(motion.duration===0?1:(sample-start)/motion.duration,motion.ease);
-    const before={...state};
+    const before={...state,...motion.from};
     for(const [key,value] of Object.entries(motion.to)){
       const old=before[key as keyof ObjectState];
       (state as Record<string,unknown>)[key]=key!=='selected'&&typeof value==='number'&&typeof old==='number'?old+(value-old)*p:value;

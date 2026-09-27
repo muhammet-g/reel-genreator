@@ -1,4 +1,28 @@
 import type {Project,Resource} from './contracts';
+import {resolveTime,objectStateAt,cameraAt} from './state';
+
+/** Track coverage, not a perceptual quality score. Tiny motion still counts as movement. */
+export function motionActivity(p:Project){
+  return p.scenes.map(scene=>{
+    const spans:Array<[number,number]>=[];
+    const include=(start:number,end:number)=>{if(end>scene.start&&start<scene.end)spans.push([Math.max(scene.start,start),Math.min(scene.end,end)]);};
+    for(const motion of p.motions){
+      const object=p.objects.find(o=>o.id===motion.target)!;
+      if(!motion.duration||object.scene&&object.scene!==scene.id)continue;
+      const start=resolveTime(motion.at,p.events),before={...objectStateAt(object,p.motions,p.events,start-1),...motion.from};
+      if(Object.entries(motion.to).some(([key,value])=>key!=='selected'&&typeof value==='number'&&Math.abs(value-Number(before[key as keyof typeof before]))>1e-6))include(start,start+motion.duration);
+    }
+    for(const cue of p.camera){const start=resolveTime(cue.at,p.events),a=cameraAt(p,start),b=cameraAt(p,start+cue.duration);
+      if(Math.abs(a.x-b.x)+Math.abs(a.y-b.y)+Math.abs(a.zoom-b.zoom)>1e-6)include(start,start+cue.duration);}
+    for(const transition of p.transitions)if(['fade','focus','push','wipe','reveal'].includes(transition.kind)){
+      const start=resolveTime(transition.at,p.events);include(start,start+transition.duration);
+    }
+    spans.sort((a,b)=>a[0]-b[0]);let cursor=scene.start,moving=0,longest=0;
+    for(const [start,end] of spans){longest=Math.max(longest,start-cursor);if(end>cursor)moving+=end-Math.max(cursor,start);cursor=Math.max(cursor,end);}
+    longest=Math.max(longest,scene.end-cursor);
+    return {scene:scene.id,movingFraction:moving/(scene.end-scene.start),longestStillSeconds:longest/p.audio.sampleRate};
+  });
+}
 export function rankResources(resources:Resource[],request:{tags:string[];sceneType:string;energy:string;style?:string;type?:string;durationSamples?:number}){
   return resources.filter(r=>r.reviewed&&r.source&&r.license&&(!request.type||r.type===request.type)&&
     (request.type||r.type!=='audio')&&(!r.sceneTypes.length||r.sceneTypes.includes(request.sceneType))&&
