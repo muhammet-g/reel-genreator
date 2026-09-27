@@ -47,6 +47,10 @@ export function stage(file:string,folder:string){
   const digest=hash(file),relative=`${folder}/${digest.slice(0,16)}${path.extname(file).toLowerCase()}`;
   const target=path.join(publicDir,relative);mkdirSync(path.dirname(target),{recursive:true});
   if(existsSync(target)){if(hash(target)!==digest)throw Error('Staged asset collision');}else copyFileSync(file,target);
+  if(path.extname(file)==='.woff2'){
+    const notice=path.join(path.dirname(path.dirname(file)),'LICENSE');
+    if(existsSync(notice)){const destination=path.join(path.dirname(target),`font-license-${hash(notice).slice(0,16)}.txt`);if(!existsSync(destination))copyFileSync(notice,destination);}
+  }
   return {file:relative,sha256:digest};
 }
 export async function inspectAudio(file:string,folder:string):Promise<Project['audio']>{
@@ -65,6 +69,8 @@ export function verifyAssets(p:Project){
 export async function prepareAudio(p:Project){
   verifyAssets(p);
   const master=path.join(publicDir,p.audio.src),folder=path.dirname(master);
+  const metadata=probe(master).streams.find((s:any)=>s.codec_type==='audio'),original=await decoded(master,p.audio.channels);
+  if(!metadata||Number(metadata.sample_rate)!==p.audio.sampleRate||metadata.channels!==p.audio.channels||original.sampleCount!==p.audio.sampleCount)throw Error('Master audio timing metadata mismatch');
   const identity=createHash('sha256').update(JSON.stringify({master:p.audio.sha256,sfx:p.sfx,events:p.events,resources:p.resources})).digest('hex').slice(0,16);
   const output=path.join(folder,`audio-${identity}.m4a`);
   const record=output+'.json';
@@ -85,6 +91,7 @@ export async function prepareAudio(p:Project){
     writeFileSync(record,JSON.stringify({sha256:hash(output),master:p.audio.sha256,sfx:p.sfx},null,2));
   }
   const pcm=await decoded(output,p.audio.channels);
+  if(pcm.sampleCount<p.audio.sampleCount||pcm.sampleCount-p.audio.sampleCount>1024)throw Error('Audio derivative duration mismatch');
   p.audio.derivative={src:path.relative(publicDir,output).replaceAll('\\','/'),sha256:hash(output),decodedHash:pcm.hash,sourceHash:p.audio.sha256};
   verifyAssets(p);return output;
 }
@@ -97,7 +104,7 @@ export async function verifyOutput(p:Project,file:string){
   if(!a||a.codec_name!=='aac'||Number(a.sample_rate)!==p.audio.sampleRate||a.channels!==p.audio.channels)throw Error('Audio format mismatch');
   const duration=Number(info.format.duration),expected=p.audio.sampleCount/p.audio.sampleRate;
   if(duration<expected-.001||duration-expected>1/fps+.05)throw Error('Output duration mismatch');
-  ffmpeg(['-i',file,'-f','null','-']);
+  ffmpeg(['-i',file,'-c:v','rawvideo','-c:a','pcm_s24le','-f','null','-']);
   const pcm=await decoded(file,p.audio.channels);
   if(pcm.hash!==p.audio.derivative?.decodedHash)throw Error('Final audio differs from derivative');
   return {frames,fps,dimensions:[v.width,v.height],duration,masterDuration:expected,masterSha256:p.audio.sha256,

@@ -12,7 +12,7 @@ export function validateProject(input:unknown):Project {
   let cursor=0;
   for(const scene of p.scenes){
     if(scene.start!==cursor||scene.end<=scene.start||scene.end>end)throw Error('Scene coverage must be contiguous and cover all audio');
-    scene.hierarchy.forEach(x=>ref(x,objects,'hierarchy object'));cursor=scene.end;
+    scene.hierarchy.forEach(x=>ref(x,objects,'hierarchy object'));if(scene.teachingObject)ref(scene.teachingObject,objects,'teaching object');cursor=scene.end;
   }
   if(cursor!==end)throw Error('Scene coverage misses audio tail');
   for(const [name,time] of Object.entries(p.events))if(time>end)throw Error(`Out-of-range event: ${name}`);
@@ -48,8 +48,15 @@ export function validateProject(input:unknown):Project {
   }
   const resources=new Set(p.resources.map(r=>r.id));
   for(const r of p.resources){local(r.file);if(!r.reviewed)throw Error(`Unreviewed selected resource: ${r.id}`);}
-  for(const o of p.objects)if(o.resource)ref(o.resource,resources,'resource');
-  for(const cue of p.sfx){bounds(cue.at,cue.duration);ref(cue.resource,resources,'SFX resource');if(p.resources.find(r=>r.id===cue.resource)!.type!=='audio')throw Error('SFX requires audio resource');}
+  for(const o of p.objects){
+    o.allowOverlap.forEach(id=>ref(id,objects,'overlap object'));
+    if(o.kind==='array'&&!o.cells?.length)throw Error('Array requires cells');
+    if(o.kind==='image'&&!o.resource)throw Error('Image requires resource');
+    if(o.resource){ref(o.resource,resources,'resource');if(o.kind==='image'&&!['image','svg'].includes(p.resources.find(r=>r.id===o.resource)!.type))throw Error('Image requires image or SVG resource');}
+    for(const index of [o.initial.selected,...p.motions.filter(m=>m.target===o.id).map(m=>m.to.selected)])if(index!==undefined&&(o.kind!=='array'||index>=(o.cells?.length??0)))throw Error('Array selected index outside cells');
+  }
+  p.references.forEach(r=>ref(r.resource,resources,'visual reference'));
+  for(const cue of p.sfx){if(typeof cue.at==='number')throw Error('SFX must use a named event');bounds(cue.at,cue.duration);ref(cue.resource,resources,'SFX resource');if(p.resources.find(r=>r.id===cue.resource)!.type!=='audio')throw Error('SFX requires audio resource');}
   for(const box of [p.layout.safeArea,p.layout.captionZone])if(box[0]+box[2]>1||box[1]+box[3]>1)throw Error('Layout zone outside frame');
   return p;
 }

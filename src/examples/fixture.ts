@@ -13,7 +13,7 @@ export const fixture:Project={version:1,id:'Synthetic',frame:{width:1080,height:
   motions:[{target:'token',at:0,duration:24000,to:{opacity:1},ease:'out',intent:'entrance'},
     {target:'container',at:{event:'focus',offset:0},duration:24000,to:{opacity:1},ease:'out',intent:'entrance'},
     {target:'token',at:{event:'focus',offset:24000},duration:48000,to:{y:.58,scale:.62,owner:'container',focus:1},ease:'smooth',intent:'move'}],
-  camera:[{at:48000,duration:48000,kind:'push',target:'token',x:.5,y:.5,zoom:1.04,intensity:.4,ease:'smooth',settle:true},
+  camera:[{at:48000,duration:48000,kind:'push',x:.5,y:.5,zoom:1.04,intensity:.4,ease:'smooth',settle:true},
     {at:120000,duration:24000,kind:'settle',x:.5,y:.5,zoom:1,intensity:1,ease:'smooth',settle:true}],
   transitions:[{from:'intro',to:'result',at:144000,duration:14400,kind:'carry',shared:['token'],reason:'The function keeps its identity'}],
   captions:[{id:'phrase1',start:0,end:140000,text:'هذا مثال اصطناعي: الدالة قيمة',direction:'rtl',status:'verified',source:'Synthetic timing'},
