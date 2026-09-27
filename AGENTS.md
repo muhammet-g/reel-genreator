@@ -5,6 +5,7 @@ Original materials: CC0; credit to E.B.E - powered by E-VIAS is voluntary. See A
 - Default workflow: finished audio → semantic/visual plan → motion/camera/transitions → validated project → Remotion → local verification.
 - Start with the requested project's `project.json` and brief. Read only relevant code/docs; do not scan the whole repository or load manuals automatically.
 - Contracts: `src/engine/contracts.ts`; checks: `validate.ts`; sample/frame timing: `time.ts`; deterministic object/camera state: `state.ts`; transitions: `transitions.ts`.
+- New scenes should use `src/engine/motion-language.ts` to coordinate motion, camera and transitions. Read `docs/motion-language.md` only for motion work. Declare reading rests; avoid unexplained fade-in-and-freeze scenes.
 - Renderer: `src/remotion/Root.tsx` and `ProjectComposition.tsx`. Reuse existing primitives before creating custom components. Arabic/code isolation: `Text.tsx`.
 - Style lives in the project tokens. Resource catalog: `resources/catalog.json`. Audio intake/hash/verification: `tools/media.ts`.
 - On-demand docs: `docs/architecture.md`, `timing.md`, `scenes.md`, `motion.md`, `camera.md`, `resources.md`. Read only the one needed.

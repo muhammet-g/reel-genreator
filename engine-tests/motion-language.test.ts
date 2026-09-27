@@ -6,6 +6,7 @@ import {transitionState} from '../src/engine/transitions';
 import {choreograph,staggerOffsets} from '../src/engine/motion-language';
 import {validateProject} from '../src/engine/validate';
 import {motionActivity} from '../src/engine/planning';
+import {motionLanguageDemo} from '../src/examples/motion-language-demo';
 
 function source(){
   const p=structuredClone(fixture);p.motions=[];p.camera=[];p.transitions=[];
@@ -74,4 +75,15 @@ test('authored entrances settle before generated camera, and existing camera con
   assert.deepEqual(result.motions[0],p.motions[0]);assert.ok(Number(result.camera[0].at)>=72000);
   p.camera=[{at:80000,duration:50000,kind:'push',x:.5,y:.5,zoom:1.02,intensity:1,ease:'smooth',settle:true}];
   assert.throws(()=>choreograph(p,[{scene:'intro',preset:'softReveal'}]),/Camera overlap/);
+});
+test('five demonstration scenes keep identity and bounds, and preserve the explicit reading hold',()=>{
+  const demo=motionLanguageDemo();validateProject(demo.project);
+  assert.equal(demo.project.scenes.length,5);assert.deepEqual(demo.warnings,[]);
+  assert.deepEqual(demo.project.style,demo.source.style);assert.deepEqual(demo.project.captions,demo.source.captions);
+  assert.ok(demo.activity.filter(a=>!a.intentionalRest).every(a=>a.longestStillSeconds<.3));
+  assert.ok(demo.activity.find(a=>a.intentionalRest)!.longestStillSeconds>2);
+  for(const cue of demo.project.camera){assert.ok(cue.zoom>=.98&&cue.zoom<=1.06);assert.ok(Math.abs(cue.x-.5)<=.025&&Math.abs(cue.y-.5)<=.025);}
+  const title=demo.project.objects[0],snapshot=objectStateAt(title,demo.project.motions,demo.project.events,9000);
+  objectStateAt(title,demo.project.motions,demo.project.events,1000000);
+  assert.deepEqual(objectStateAt(title,demo.project.motions,demo.project.events,9000),snapshot);
 });

@@ -1,8 +1,13 @@
 # Motion and transitions
 
+For new scenes, prefer the authoring compiler in `src/engine/motion-language.ts`.
+Read [motion-language.md](motion-language.md) for presets, hierarchy, reading rest,
+semantic stagger and camera/transition coordination. The tracks below remain the runtime.
+
 Motion cues target an object ID, have a trigger and duration, and describe the
 destination state. Intents: entrance, emphasis, exit, hold, move, state, path.
-Easings: linear, smooth, out, in. A quadratic control point creates a curved path.
+Easings: linear, smooth, out, in and productive/expressive enter, standard, exit.
+An optional `from` state gives a seek-safe explicit start. A quadratic control point creates a curved path.
 String labels, selected indices and ownership change at the cue start. Continuous
 properties interpolate. Independent properties may animate together; conflicting
 overlaps on the same property are rejected.

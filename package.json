@@ -19,7 +19,9 @@
     "check:browser": "tsx tools/check-browser.ts",
     "import:references": "tsx tools/import-reference.ts",
     "check:references": "tsx tools/check-references.ts",
-    "verify": "tsx tools/verify.ts"
+    "verify": "tsx tools/verify.ts",
+    "motion:demo": "tsx tools/prepare-motion-demo.ts",
+    "choreograph": "tsx tools/choreograph.ts"
   },
   "dependencies": {
     "@fontsource/cairo": "5.3.0",

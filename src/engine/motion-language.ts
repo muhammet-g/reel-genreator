@@ -135,9 +135,10 @@ export function choreograph(input:Project,recipes:SceneMotion[]){
       wanted.zoom=clamp(wanted.zoom,motionLimits.cameraZoomMin,motionLimits.cameraZoomMax);
       wanted.x=clamp(wanted.x,.5-motionLimits.cameraOffset,.5+motionLimits.cameraOffset);wanted.y=clamp(wanted.y,.5-motionLimits.cameraOffset,.5+motionLimits.cameraOffset);
       const end=safeCamera(project,scene.id,availableEnd,start,wanted);
-      if(JSON.stringify(end)!==JSON.stringify(start))project.camera.push({at,duration:availableEnd-at,kind:active.kind==='focus'?'focus':active.kind,...end,intensity:1,ease:`${family}.standard`,settle:true});
+      const moved=JSON.stringify(end)!==JSON.stringify(start);
+      if(moved)project.camera.push({at,duration:availableEnd-at,kind:active.kind==='focus'?'focus':active.kind,...end,intensity:1,ease:`${family}.standard`,settle:true});
       else warnings.push(`${scene.id}: camera has no safe travel; use an emphasis beat or an explicit reading rest.`);
-      phase(scene.id,'active',at,availableEnd,`Bounded ${active.kind} supports ${subject??'scene hierarchy'}`);
+      phase(scene.id,'active',at,availableEnd,moved?`Bounded ${active.kind} supports ${subject??'scene hierarchy'}`:'Spatial rest: safe camera travel is unavailable');
     }else phase(scene.id,'active',activeStart,availableEnd,'Brief scene: preserve reading time instead of adding motion');
     for(const beat of plan.emphasis??[]){
       const object=project.objects.find(o=>o.id===beat.target);if(!object||object.scene&&object.scene!==scene.id)throw Error('Emphasis target is outside scene');

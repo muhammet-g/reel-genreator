@@ -44,6 +44,11 @@ camera, a carry transition, local SVG and an explicit SFX cue. It is not custome
 
 ## Engineering
 
+For coordinated scene motion, use `choreograph(project, recipes)` or `npm run choreograph`.
+See [motion language](docs/motion-language.md) for five presets, semantic staggering,
+intentional reading rests and camera/transition continuity. `npm run motion:demo`
+prepares a five-scene silent before/after comparison using the existing visual identity.
+
 `npm test` runs deterministic unit checks; `npm run typecheck` checks TypeScript.
 Read [architecture](docs/architecture.md) for boundaries and verification limits.
 Task-specific guides: [timing](docs/timing.md), [scenes](docs/scenes.md),
