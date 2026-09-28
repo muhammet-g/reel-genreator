@@ -44,6 +44,13 @@ These are defaults over one compiler, not five separate animation implementation
 `style` may be productive, expressive or cinematic. Style here means motion timing
 and amplitude; it never changes colors, fonts, dimensions or visual identity.
 
+Generated entrances, emphasis, camera moves and scene bridges use `settled`, a
+finite, deterministic spring-like curve with no bounce and zero velocity at both
+ends. This changes the movement feel without shifting narration events or cue
+durations. Exits keep a symmetric smooth curve so outgoing content remains
+legible through the handoff. Explicit authored easing still takes precedence;
+`spring` remains available when a deliberate spatial overshoot is wanted.
+
 ## Decision rules for scene authors
 
 - **Productive:** explanations, subtitles, metadata, dense technical content. Small
@@ -72,6 +79,22 @@ once. Delay spread is compressed to fit short scenes and capped at 450ms.
 
 ## Phases and continuity
 
+`entryFamily` and `exitFamily` are optional scene-level choices. Entries support
+`spatial`, `codeScan`, `heroDepth`, and `groupAssemble`; exits support `none`,
+`codeDeconstruct`, `heroDepart`, and `groupCascade`. Code effects reveal or remove
+the code object through a local mask; hero effects add bounded depth and movement.
+Group families use the existing stagger logic. These are semantic treatments of
+the teaching object or group, not full-frame effects. Recipes that omit the fields
+retain their existing behavior.
+
+When an exit is selected, its interval is reserved at the end of the scene, so
+active camera travel ends before it. If a transition follows, the exit starts
+before the boundary and finishes during that transition; outgoing content is still
+visible as incoming content arrives. Persistent objects shared with the following
+scene skip generated exits and entrances. A bridge carries the camera through the
+boundary and records those shared IDs. Inspect selected stills near both sides of
+the boundary, then use `check:browser` for sampled layout and seek consistency.
+
 The compiler budgets entrance, settle, active, optional shift and exit from actual
 scene duration. It uses existing energy/density defaults, bounded delays and a short
 reading landing, not a fixed percentage template. Very short scenes omit active
@@ -87,20 +110,32 @@ play a second entrance. The camera begins a small pan before the boundary and fi
 after it; its state is inherited by the next scene. No reset to neutral at each cut.
 Left/right/up/down are supported. Legacy transitions keep their original default.
 
-## Limits and mechanics
+## Creative preferences and technical checks
 
-Generated translation <=2.5% of frame dimension, emphasis scale <=3%, no rotation,
-spring or overshoot. Camera zoom stays within .98–1.06, center within .025 per axis.
-Safe-area estimates reduce camera travel. Independently authored close-ups outside
-that range are preserved, not automatically pulled back. Browser checks remain required.
+Quiet recipes retain the original small travel, scale, camera and stagger values as
+**preferences**, preserving existing projects. They are not creative ceilings.
+`creative` can name `restrained`, `normal`, `expressive`, `cinematic` or `hero` weight
+with a visual reason. The compiler considers scene duration, object role and available
+space; it may propose larger travel, scale or camera moves. An author can optionally
+set entrance travel/scale/rotation/easing and camera zoom delta or target center for
+an exceptional visual decision. The viewer normally supplies the teaching goal, not
+these numbers. `spring` is a deterministic spatial easing with a brief overshoot;
+opacity continues on a monotone curve. Presets remain starting points.
+
+The compiler samples the proposed entrance and camera paths against visible objects,
+including rotated bounds. If an ambitious move would leave the safe area, it reduces
+that move and reports a warning. Existing authored tracks still take precedence.
+This estimate cannot see glyph clipping or all collisions: `check:browser` measures
+real rendered frames, including typography and RTL. Camera/property conflicts,
+identity continuity and transition ownership remain hard validation rules.
 
 Semantic easing families live in `easing.ts`: productive/expressive enter, standard,
 exit. They follow the bezier references in the task brief, solving x(time) correctly.
 The older linear/smooth/in/out curves remain available. No animation dependency was added.
 
-Recipes compile into existing `motions`, `camera`, `transitions`. Two small optional
-contract extensions enable this: `motion.from` (explicit start state), and transition
-`direction`/`ease`. The renderer stays deterministic, with no animation effects or clock.
+Recipes compile into existing `motions`, `camera`, `transitions`. Optional contract
+fields include `motion.from`, a local `motion.effect`, and transition
+`direction`/`ease`/`kind`. The renderer remains deterministic and sample-driven.
 
 `motionActivity` reports moving-track fraction and longest still interval. These are
 coverage measurements, **not perceptual quality scores**. The compiler distinguishes

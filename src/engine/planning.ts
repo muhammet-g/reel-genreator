@@ -40,8 +40,10 @@ export function motionDefaults(energy:'calm'|'balanced'|'energetic',density:'low
 export function motionAdvisories(p:Project){
   const findings:Array<{code:string;target?:string;message:string}>=[];
   const entrances=p.motions.filter(m=>m.intent==='entrance');
-  for(let i=2;i<entrances.length;i++)if(entrances.slice(i-2,i+1).every(m=>JSON.stringify(Object.keys(m.to))===JSON.stringify(Object.keys(entrances[i].to))))
-    findings.push({code:'repeated-entrance',target:entrances[i].target,message:'Review three repeated entrance patterns.'});
+  const byTarget=new Map<string,number>();
+  for(const entrance of entrances)byTarget.set(entrance.target,(byTarget.get(entrance.target)??0)+1);
+  for(const [target,count] of byTarget)if(count>=3)
+    findings.push({code:'repeated-entrance',target,message:'The same object enters three or more times; review identity continuity.'});
   if(p.camera.filter(c=>c.kind!=='static'&&c.kind!=='settle').length>p.scenes.length)
     findings.push({code:'camera-density',message:'More camera moves than semantic scenes; review attention demands.'});
   return findings;

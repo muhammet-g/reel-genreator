@@ -5,6 +5,8 @@ import {frameToSample} from '../engine/time';
 import {cameraAt,objectStateAt} from '../engine/state';
 import {transitionState} from '../engine/transitions';
 import {MixedText} from './Text';
+import {localEffectAt} from '../engine/motion-families';
+import {CodeDragonBrand} from './CodeDragonBrand';
 
 const Fonts:React.FC<{project:Project}>=({project})=>{
   const [handle]=useState(()=>delayRender('Local fonts'));
@@ -20,7 +22,7 @@ const Shape:React.FC<{object:VisualObject;state:ObjectState;project:Project;scal
   const fontSize=Math.max(o.kind==='container'?30:o.fontSize??42,p.layout.minimumText/scale);
   const base:React.CSSProperties={width:'100%',height:'100%',boxSizing:'border-box',display:'flex',alignItems:'center',justifyContent:'center',
     borderRadius:p.style.radius,color:o.tint?palette[o.tint]:palette.text,fontSize,fontWeight:600,lineHeight:1.3,textAlign:'center',whiteSpace:o.kind==='function'?'nowrap':'pre-line',
-    fontFamily:o.direction==='ltr'?`"${p.style.fonts.code}","${p.style.fonts.arabic}",sans-serif`:`"${p.style.fonts.arabic}","${p.style.fonts.latin}",sans-serif`};
+    fontFamily:o.direction==='ltr'||o.kind==='code'?`"${p.style.fonts.code}","${p.style.fonts.arabic}",sans-serif`:`"${p.style.fonts.arabic}","${p.style.fonts.latin}",sans-serif`};
   if(o.kind==='image'){
     const resource=p.resources.find(r=>r.id===o.resource)!;
     if(o.tint&&resource.type==='svg')return <div style={{width:'100%',height:'100%',background:palette[o.tint],mask:`url("${staticFile(resource.file)}") center / contain no-repeat`}}/>;
@@ -38,20 +40,29 @@ export const ProjectComposition:React.FC<{project:Project}>=({project:p})=>{
   const frame=useCurrentFrame(),sample=frameToSample(frame,p.audio.sampleRate,p.frame.fps),camera=cameraAt(p,sample);
   const {width,height}=p.frame;
   const caption=p.captions.find(c=>sample>=c.start&&sample<c.end),zone=p.layout.captionZone;
-  return <AbsoluteFill data-render-frame={frame} style={{background:p.style.palette.background,color:p.style.palette.text,overflow:'hidden'}}>
+  return <AbsoluteFill
+    data-render-frame={frame}
+    style={{background:p.style.palette.background,color:p.style.palette.text,overflow:'hidden'}}
+    from={-158}
+  >
     <Fonts project={p}/>
     {p.audio.src&&<Audio src={staticFile(p.audio.derivative?.src??p.audio.src)}/>}
     {p.objects.map(o=>{
-      const s=objectStateAt(o,p.motions,p.events,sample),transition=transitionState(p,o,sample);
+      const s=objectStateAt(o,p.motions,p.events,sample),transition=transitionState(p,o,sample),local=localEffectAt(p,o,sample);
       const parallax=1-o.depth*.35,x=.5+(s.x-camera.x)*camera.zoom+(camera.x-.5)*(1-parallax),y=.5+(s.y-camera.y)*camera.zoom;
-      return <div key={o.id} data-object={o.id} data-role={o.role} data-owner={s.owner??''} data-visible={s.opacity*transition.opacity>.01}
+      return <div key={o.id} data-object={o.id} data-role={o.role} data-owner={s.owner??''} data-visible={s.opacity*transition.opacity*(local.visibleFraction??1)>.01}
         style={{position:'absolute',zIndex:o.role==='primary'?2:o.role==='secondary'?1:0,left:(x+transition.x)*width,top:(y+transition.y)*height,width:o.size[0]*width,height:o.size[1]*height,
           opacity:s.opacity*transition.opacity,transform:`translate(-50%,-50%) scale(${s.scale*camera.zoom*transition.scale}) rotate(${s.rotation}deg)`,
-          clipPath:transition.clip?`inset(0 ${transition.clip*100}% 0 0)`:undefined}}><Shape object={o} state={s} project={p} scale={s.scale*camera.zoom*transition.scale}/></div>;
+          clipPath:transition.clip?`inset(0 ${transition.clip*100}% 0 0)`:local.clipPath,filter:local.filter}}>
+          <Shape object={o} state={s} project={p} scale={s.scale*camera.zoom*transition.scale}/>
+          {local.edgeOpacity&&<div aria-hidden style={{position:'absolute',top:0,bottom:0,left:`${local.edge}%`,width:2,
+            background:p.style.palette.accent,opacity:local.edgeOpacity,boxShadow:`0 0 18px ${p.style.palette.accent}`}}/>}
+        </div>;
     })}
     {caption&&<div data-caption style={{position:'absolute',left:zone[0]*width,top:zone[1]*height,width:zone[2]*width,height:zone[3]*height,
       display:'flex',justifyContent:'center',alignItems:'center',textAlign:'center',fontFamily:`"${p.style.fonts.arabic}","${p.style.fonts.latin}",sans-serif`,fontSize:p.style.captionSize,lineHeight:1.5,fontWeight:600}}>
       <div data-text style={{maxWidth:'100%',padding:'12px 24px',borderRadius:p.style.radius,background:p.style.palette.surface}}><MixedText text={caption.text} direction={caption.direction}/></div>
     </div>}
+    <CodeDragonBrand project={p}/>
   </AbsoluteFill>;
 };

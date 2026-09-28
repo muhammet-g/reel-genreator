@@ -17,3 +17,6 @@ parallax. This is a 2D camera, not a 3D scene graph.
 Use restrained intensity, leave readable holds, and avoid simultaneously moving the
 subject and camera without a reason. Every camera plan goes through measured spatial
 checks. Changing camera must not change narration, object ownership or caption timing.
+The small camera range in ordinary recipes is a preference. A justified hero or
+cinematic decision may request more travel; the author-time compiler adapts unsafe
+paths, and browser measurements check the rendered result.

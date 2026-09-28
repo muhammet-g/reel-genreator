@@ -6,8 +6,12 @@ Original materials: CC0; credit to E.B.E - powered by E-VIAS is voluntary. See A
 - Start with the requested project's `project.json` and brief. Read only relevant code/docs; do not scan the whole repository or load manuals automatically.
 - Contracts: `src/engine/contracts.ts`; checks: `validate.ts`; sample/frame timing: `time.ts`; deterministic object/camera state: `state.ts`; transitions: `transitions.ts`.
 - New scenes should use `src/engine/motion-language.ts` to coordinate motion, camera and transitions. Read `docs/motion-language.md` only for motion work. Declare reading rests; avoid unexplained fade-in-and-freeze scenes.
+- For new scene decisions, consult `docs/visual-direction.md` on demand; use author-time visual intent, reusable layout placement and selected-frame preview before full rendering.
+- Treat small motion amplitudes as defaults. Allow justified stronger direction, then keep safe area, readability, identity and conflict checks strict.
 - Renderer: `src/remotion/Root.tsx` and `ProjectComposition.tsx`. Reuse existing primitives before creating custom components. Arabic/code isolation: `Text.tsx`.
+- For reusable element animation, use `src/remotion/motion/`; read `docs/element-motion.md` only for element-motion work. Keep this separate from camera and scene transitions.
 - Style lives in the project tokens. Resource catalog: `resources/catalog.json`. Audio intake/hash/verification: `tools/media.ts`.
+- For Code Dragon projects, use the reusable `CodeDragonBrand` overlay and `tools/code-dragon-brand.ts`; read `docs/code-dragon-brand.md` on demand. Do not rebuild the logo placement inside individual scenes.
 - On-demand docs: `docs/architecture.md`, `timing.md`, `scenes.md`, `motion.md`, `camera.md`, `resources.md`. Read only the one needed.
 - Legacy code and instructions are reference-only. Do not load `legacy/`, old project builders, or former Community Reels skills unless the task explicitly concerns them. Never execute them in the default workflow.
 - Keep source audio immutable and prior exports intact. Private project data belongs in ignored `projects/`. New exports get a new output directory.

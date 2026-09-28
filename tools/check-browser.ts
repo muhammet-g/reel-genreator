@@ -13,12 +13,14 @@ import {root,publicDir,verifyAssets} from './media';
 import {browserExecutable} from './render';
 async function main(){
   const file=process.argv[2],data=JSON.parse(readFileSync(file,'utf8')),p=validateProject(data.project);verifyAssets(p);
+  const flag=process.argv.indexOf('--composition'),composition=flag<0?'MotionProject':process.argv[flag+1];
+  if(!['MotionProject','ForEachFilm'].includes(composition))throw Error('Unknown composition');
   const out=path.join(root,'projects/remotion-checks',p.id);mkdirSync(out,{recursive:true});
   await build({entryPoints:['src/remotion/BrowserCheck.tsx'],outfile:path.join(out,'check.js'),bundle:true,platform:'browser',format:'iife',define:{'process.env.NODE_ENV':'"production"'}});
   const server=createServer((req,res)=>{
     const route=decodeURIComponent(new URL(req.url!,'http://localhost').pathname);
     if(route==='/'){res.setHeader('Content-Type','text/html');res.end('<html><head><style>body{margin:0}</style></head><body><div id="root"></div><script src="/check.js"></script></body></html>');return;}
-    if(route==='/project.json'){res.setHeader('Content-Type','application/json');res.end(JSON.stringify(data));return;}
+    if(route==='/project.json'){res.setHeader('Content-Type','application/json');res.end(JSON.stringify({...data,composition}));return;}
     const target=route==='/check.js'?path.join(out,'check.js'):path.resolve(publicDir,'.'+route);
     if(route!=='/check.js'&&!target.startsWith(publicDir+path.sep)||!existsSync(target)){res.statusCode=404;res.end();return;}
     const ext=path.extname(target),types:Record<string,string>={'.js':'text/javascript','.woff2':'font/woff2','.svg':'image/svg+xml','.png':'image/png','.wav':'audio/wav','.m4a':'audio/mp4'};
@@ -35,6 +37,8 @@ async function main(){
     const load=async()=>{await page.goto(url,{waitUntil:'networkidle0'});await page.waitForSelector('[data-fonts-ready="true"]');await page.evaluate(async()=>{await document.fonts.ready;await Promise.all([...document.images].map(i=>i.decode()));});};
     const seek=async(frame:number)=>{await page.evaluate(f=>window.seek(f),frame);await page.waitForFunction(f=>document.querySelector('[data-render-frame]')?.getAttribute('data-render-frame')===String(f),{},frame);await page.evaluate(()=>new Promise<void>(r=>requestAnimationFrame(()=>requestAnimationFrame(()=>r()))));};
     await load();const total=frameCount(p.audio.sampleCount,p.audio.sampleRate,p.frame.fps);
+    if(composition==='ForEachFilm'&&await page.evaluate(()=>document.querySelectorAll('[data-debug-overlay]').length)>0)
+      throw Error('Authoring overlays are visible in final viewer mode');
     const trackTimes=(m:{at:Parameters<typeof resolveTime>[0];duration:number})=>{const t=resolveTime(m.at,p.events);return[t-1,t,t+m.duration/4,t+m.duration/2,t+m.duration*.75,t+m.duration];};
     const times=[0,p.audio.sampleCount-1,...p.scenes.flatMap(s=>[s.start,(s.start+s.end)/2,s.end-1]),...p.motions.flatMap(trackTimes),...p.camera.flatMap(trackTimes),...p.transitions.flatMap(trackTimes)];
     const frames=[...new Set(times.map(t=>Math.min(total-1,sampleToFrame(Math.max(0,Math.round(t)),p.audio.sampleRate,p.frame.fps))))].sort((a,b)=>a-b);
@@ -51,9 +55,21 @@ async function main(){
       if(observed.caption){const [x,y,w,h]=observed.caption.text,[zx,zy,zw,zh]=p.layout.captionZone.map((v,i)=>v*(i%2?p.frame.height:p.frame.width));if(Math.abs(x+w/2-p.frame.width/2)>2||x<zx-2||y<zy-2||x+w>zx+zw+2||y+h>zy+zh+2)violations.push({frame,kind:'caption-bounds'});}
     }
     const hashes:unknown[]=[];
-    const seekFrames=[...new Set([0,Math.floor(total/3),Math.floor(total*2/3),total-1,...p.scenes.map(s=>sampleToFrame(Math.round((s.start+s.end)/2),p.audio.sampleRate,p.frame.fps)),...p.transitions.map(t=>sampleToFrame(resolveTime(t.at,p.events)+Math.floor(t.duration/2),p.audio.sampleRate,p.frame.fps))])];
+    const seekFrames=process.argv.includes('--quick')
+      ? [...new Set([0,Math.floor(total/3),Math.floor(total*2/3),total-1,
+          ...['for-loop','code-hero'].map(id=>p.scenes.find(s=>s.id===id)).filter(s=>s!==undefined).map(s=>sampleToFrame(Math.round((s.start+s.end)/2),p.audio.sampleRate,p.frame.fps))])]
+      : [...new Set([0,Math.floor(total/3),Math.floor(total*2/3),total-1,...p.scenes.map(s=>sampleToFrame(Math.round((s.start+s.end)/2),p.audio.sampleRate,p.frame.fps)),...p.transitions.map(t=>sampleToFrame(resolveTime(t.at,p.events)+Math.floor(t.duration/2),p.audio.sampleRate,p.frame.fps))])];
     for(const frame of seekFrames){
-      const structure=()=>page.evaluate(()=>[...document.querySelectorAll('[data-object], [data-caption]')].map(e=>({html:e.outerHTML,box:JSON.stringify(e.getBoundingClientRect())})));
+      const structure=()=>page.evaluate(()=>[...document.querySelectorAll('[data-object], [data-caption]')].map(e=>{
+        const clone=e.cloneNode(true) as Element;
+        for(const node of [clone,...clone.querySelectorAll('*')]){
+          if(!(node instanceof HTMLElement||node instanceof SVGElement))continue;
+          const style=(node as HTMLElement).style;
+          if(!style?.length)continue;
+          node.setAttribute('style',[...style].sort().map(key=>`${key}:${style.getPropertyValue(key)}`).join(';'));
+        }
+        return {html:clone.outerHTML,box:JSON.stringify(e.getBoundingClientRect())};
+      }));
       await seek(total-1);await seek(frame);const before=await structure(),history=await page.screenshot();await load();await seek(frame);const after=await structure(),fresh=await page.screenshot();
       const digest=(b:Uint8Array)=>createHash('sha256').update(b).digest('hex');
       const [a,b]=await Promise.all([sharp(history).raw().toBuffer(),sharp(fresh).raw().toBuffer()]);let changed=0,maxDelta=0;
@@ -62,8 +78,10 @@ async function main(){
       // and permit only <=0.01% channel differences with <=32/255 delta; never layout or motion drift.
       const equal=JSON.stringify(before)===JSON.stringify(after)&&changed/a.length<=.0001&&maxDelta<=32;
       hashes.push({frame,equal,exact:digest(history)===digest(fresh),changedChannels:changed,maxDelta});
-      if(!equal){violations.push({frame,kind:'seek-difference'});writeFileSync(path.join(out,`history-${frame}.png`),history);}
+      if(!equal){violations.push({frame,kind:'seek-difference'});writeFileSync(path.join(out,`history-${frame}.png`),history);
+        if(!existsSync(path.join(out,'seek-diff.json')))writeFileSync(path.join(out,'seek-diff.json'),JSON.stringify({frame,before,after},null,2));}
       writeFileSync(path.join(out,`frame-${frame}.png`),fresh);
+      if(!equal&&process.argv.includes('--debug-first'))break;
     }
     writeFileSync(path.join(out,'browser.json'),JSON.stringify({errors,violations,samples,hashes},null,2));
     if(errors.length||violations.length)throw Error(`Browser check: ${errors.length} runtime errors, ${violations.length} violations. ${out}`);

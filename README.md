@@ -16,6 +16,9 @@ npm run doctor
 npm run new -- MyProject path/to/finished-audio.wav
 ```
 
+Add `--code-dragon` to `npm run new` for the reusable Code Dragon logo and
+username treatment. See [the brand template](docs/code-dragon-brand.md).
+
 Author `projects/MyProject/project.json` with narration, measured phrase times,
 semantic scenes, visual objects and motion. Intake creates an explicitly unplanned
 placeholder; it does not transcribe or invent a storyboard.
@@ -45,9 +48,14 @@ camera, a carry transition, local SVG and an explicit SFX cue. It is not custome
 ## Engineering
 
 For coordinated scene motion, use `choreograph(project, recipes)` or `npm run choreograph`.
+For author-time intent selection, layout placement and selected still previews, see
+[visual direction](docs/visual-direction.md).
 See [motion language](docs/motion-language.md) for five presets, semantic staggering,
 intentional reading rests and camera/transition continuity. `npm run motion:demo`
 prepares a five-scene silent before/after comparison using the existing visual identity.
+See [element motion](docs/element-motion.md) for reusable entrance, exit,
+emphasis, ambient and Unicode-safe text primitives. `MotionPrimitivesShowcase` is
+a separate development composition.
 
 `npm test` runs deterministic unit checks; `npm run typecheck` checks TypeScript.
 Read [architecture](docs/architecture.md) for boundaries and verification limits.

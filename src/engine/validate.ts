@@ -24,6 +24,8 @@ export function validateProject(input:unknown):Project {
   const tracks=new Map<string,Array<[number,number]>>();
   for(const motion of p.motions){
     ref(motion.target,objects,'motion target');const start=bounds(motion.at,motion.duration);
+    if(motion.ease==='spring'&&Object.keys(motion.to).some(key=>!['x','y','scale','rotation'].includes(key)))
+      throw Error('Spring easing is limited to spatial properties');
     if(motion.control&&(motion.to.x===undefined||motion.to.y===undefined))throw Error('Curved path requires both destination coordinates');
     if(motion.from){
       if(Object.keys(motion.from).some(k=>!(k in motion.to)))throw Error('Motion from requires matching destination properties');
@@ -55,6 +57,8 @@ export function validateProject(input:unknown):Project {
   }
   const resources=new Set(p.resources.map(r=>r.id));
   for(const r of p.resources){local(r.file);if(!r.reviewed)throw Error(`Unreviewed selected resource: ${r.id}`);}
+  if(p.branding){ref(p.branding.logo,resources,'brand logo');
+    if(!['image','svg'].includes(p.resources.find(r=>r.id===p.branding!.logo)!.type))throw Error('Brand logo requires image or SVG resource');}
   for(const o of p.objects){
     o.allowOverlap.forEach(id=>ref(id,objects,'overlap object'));
     if(o.kind==='array'&&!o.cells?.length)throw Error('Array requires cells');

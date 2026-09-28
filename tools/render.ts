@@ -7,6 +7,9 @@ import {root,publicDir,prepareAudio,verifyOutput,ffmpeg,hash,verifyAssets} from 
 export const browserExecutable=()=>process.env.REMOTION_BROWSER??(process.platform==='win32'?'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe':undefined);
 async function main(){
   const file=process.argv[2];if(!file)throw Error('Pass project props JSON');
+  const flag=process.argv.indexOf('--composition');
+  const compositionId=flag<0?'MotionProject':process.argv[flag+1];
+  if(!['MotionProject','ForEachFilm'].includes(compositionId))throw Error('Unknown composition');
   const project=validateProject(JSON.parse(readFileSync(file,'utf8')).project);
   const dependencyLockHash=hash(path.join(root,'package-lock.json'));
   const audio=await prepareAudio(project),inputProps={project};
@@ -19,7 +22,7 @@ async function main(){
   for(const file of selected){const target=path.join(renderAssets,file);mkdirSync(path.dirname(target),{recursive:true});copyFileSync(path.join(publicDir,file),target);}
   const bundleDir=await bundle({entryPoint:path.join(root,'src/remotion/index.ts'),publicDir:renderAssets,outDir:path.join(out,'bundle')});
   const options={serveUrl:bundleDir,inputProps,browserExecutable:browserExecutable()};
-  const composition=await selectComposition({...options,id:'MotionProject'});
+  const composition=await selectComposition({...options,id:compositionId});
   const picture=path.join(out,'picture.mp4'),final=path.join(out,'final.mp4');
   if(existsSync(final)||existsSync(picture))throw Error('Output exists; choose a new project id to preserve exports');
   let reported=-1;
@@ -30,7 +33,7 @@ async function main(){
   for(const frame of [0,Math.floor(composition.durationInFrames/2),composition.durationInFrames-1])
     await renderStill({...options,composition,frame,output:path.join(out,`frame-${frame}.png`)});
   verifyAssets(project);
-  writeFileSync(path.join(out,'verification.json'),JSON.stringify({...report,projectHash:hash(snapshot),dependencyLockHash,renderer:'Remotion',version:1},null,2));
+  writeFileSync(path.join(out,'verification.json'),JSON.stringify({...report,projectHash:hash(snapshot),dependencyLockHash,renderer:'Remotion',composition:compositionId,version:1},null,2));
   console.log('\n'+final);
 }
 if(require.main===module)main().catch(e=>{console.error(e);process.exitCode=1;});
