@@ -64,18 +64,19 @@ The original visual layout was reauthored for reusable primitives.
 Camera and first-class transition tracks are new. Schema validation does not interpret
 speech. No Gemini, provider calls, upload, voice generation or recording cleanup ran.
 
-## Isolation and recovery
+## Retirement and recovery
 
-Automatic approval rejected a broad permanent deletion. The safer completed action
-preserved the old implementation, manuals and six skills under `legacy/`, outside
-runtime imports and automatic skill discovery. Seventy-seven archived implementation,
-documentation and skill files were hash-compared with baseline Git and are unchanged.
-Old source/exports in `projects/`, historical `examples/`, assets and guide PDFs remain.
+The first migration step isolated the old implementation, manuals and six skills under
+`legacy/`, outside runtime imports and automatic skill discovery. Seventy-seven archived
+implementation, documentation and skill files were hash-compared with baseline Git and
+were unchanged. After the independent Remotion gates passed, the 85-file archive was
+removed from the working tree on `codex/visual-direction-v2`. Old source/exports in
+`projects/`, historical `examples/`, assets and guide PDFs remain.
 
-The archived scripts are references, not supported entry points. Their original
-relative layout and dependencies can be recovered in a separate worktree at `f5dcf75`.
-Do not run old ignored project builders against the new root: their Python imports
-were intentionally removed from the active architecture. Default work needs no archive.
+The retired scripts are not supported entry points. Their original relative layout and
+dependencies can be recovered in a separate worktree at `f5dcf75`. Do not run old
+ignored project builders against the new root: their Python imports were intentionally
+removed from the active architecture. Default work has no legacy archive or runtime.
 
 ## Limits and remaining review
 
@@ -107,5 +108,6 @@ Schemas describe interpretation; they do not understand speech. Creative plans
 retain narration references and uncertainty. Editorial asset restrictions are
 project policy, separate from provenance and file-integrity enforcement.
 
-Legacy deletion is conditional on the gates above. Incomplete proof must be
-reported as incomplete; an MP4 alone does not establish conceptual equivalence.
+Legacy deletion was completed only after the gates above passed. Future migration
+claims must still report incomplete proof as incomplete; an MP4 alone does not
+establish conceptual equivalence.

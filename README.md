@@ -53,6 +53,7 @@ The representative private-data import/check is `npm run import:references` foll
 by `npm run check:references`; it requires the two existing project folders and never
 executes their legacy builders. Ordinary new projects do not need this adapter.
 
-See [migration evidence](docs/migration.md). `legacy/` is an inert reference archive,
-outside the new runtime and skill discovery. Historical media in `examples/` and
-old guide exports in `output/` are preserved; they are not Remotion examples.
+See [migration evidence](docs/migration.md). The former Python/Gemini/HyperFrames
+implementation is retired from the working tree and remains recoverable from Git
+history. Historical media in `examples/` and old guide exports in `output/` are
+preserved; they are not Remotion examples.

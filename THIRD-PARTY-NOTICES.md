@@ -17,5 +17,6 @@ Dependency versions are pinned in package-lock.json. Do not describe third-party
 code, fonts, supplied logos, or the entire dependency bundle as CC0. When distributing
 source bundles or staged media, include applicable dependency and asset notices.
 
-Historical dependency notices are preserved in `legacy/THIRD-PARTY-NOTICES.md`.
+Historical dependency notices for the retired implementation remain available in
+Git history at commit `f5dcf75`.
 No provider service or provider key is required by the active engine.
