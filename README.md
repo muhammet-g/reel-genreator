@@ -49,6 +49,11 @@ Read [architecture](docs/architecture.md) for boundaries and verification limits
 Task-specific guides: [timing](docs/timing.md), [scenes](docs/scenes.md),
 [motion](docs/motion.md), [camera](docs/camera.md), [resources/style/SFX](docs/resources.md).
 
+The 12 project-local [Remotion skills](.agents/skills/remotion-best-practices/SKILL.md)
+are installed under `.agents/skills/`; `skills-lock.json` records their upstream sources.
+See [Remotion tools and documentation](docs/remotion-tools.md) for task-specific
+skill selection and official references supplied by the creator.
+
 The representative private-data import/check is `npm run import:references` followed
 by `npm run check:references`; it requires the two existing project folders and never
 executes their legacy builders. Ordinary new projects do not need this adapter.
