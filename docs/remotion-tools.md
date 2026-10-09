@@ -43,11 +43,14 @@ visual reference, motion review or creator acceptance.
    unfamiliar API, use `remotion-docs` and the relevant official page; verify
    compatibility before adopting examples. A skill does not install its example
    dependencies or authorize external services.
-5. Use `remotion-studio` when previewing. For new or edited compositions, open
-   Studio as soon as the project can run and keep the actual target composition
-   visible during work. For structured projects, use `npm run studio:project --
-   projects/<project>/project.json` to stage the intended project and audio.
-6. Apply the motion-quality review to actual playback or closely spaced frames.
+5. Load `remotion-studio` for new or edited compositions. Start Studio and open
+   the actual target composition before the first composition edit, as soon as
+   the existing project can run. Keep the preview open during work. Verify the
+   rendered canvas; a ready server or a loaded Studio shell is insufficient.
+   For a new composition, verify the canvas as soon as it exists. Select the
+   launch method in the next section; generic engine previews do not contain
+   every custom composition.
+6. Apply the motion-quality review to short actual playback segments and closely spaced frames.
    Check text at phone scale, Arabic/code isolation, transition continuity,
    acceleration, settling, layer order and sound timing. Run relevant technical
    checks, including measured browser checks before rendering.
@@ -64,6 +67,38 @@ support the finished-audio workflow; they do not replace source audio, introduce
 music, permit uploads/publishing, or make technical checks stand for approval.
 Use this workflow proportionally: documentation-only work needs document/link
 checks, not Studio or a video render. Do not load every skill for every task.
+
+## Opening the correct composition
+
+For a structured engine project, use the existing helper to stage its audio and
+props and launch its generated entry:
+
+```powershell
+npm run studio:project -- projects/<project>/project.json
+```
+
+For a custom composition with its own `registerRoot()` entry, launch that entry
+directly and use the directory containing its staged assets:
+
+```powershell
+npx remotion studio projects/<project>/entry.tsx --public-dir projects/remotion-public --no-open
+```
+
+Open the exact printed local URL in the in-app browser, select the intended
+composition, and verify that its canvas and assets load. Keep the tab open for
+the creator. If the in-app browser cannot open it, follow `remotion-studio`'s
+fallback to the default browser and report what was actually verified. Do not
+substitute a generic composition or an exported MP4 for the requested Studio
+preview. Do not change firewall or security settings to recover local access.
+
+## Honest review evidence
+
+Briefly announce the skills applied and distinguish Studio playback, close-frame
+inspection, measured browser checks, export verification and actual listening.
+When a required review cannot be completed, report the blocker and fallback
+rather than mark it as passed. Audio A/B files with matching visuals are an
+experiment, not proof of a listening comparison; without a listening capability,
+state that selection used technical/material reasoning and remains provisional.
 
 ## Official references supplied by the creator
 

@@ -128,6 +128,11 @@ listening limits are recorded separately from technical verification.
 
 ## Sound without music
 
+Choose sound by the visible action and material, not merely because an event is
+called a transition. Opening an interface, moving a book, and landing a heavy
+card need their own timbre, envelope and level decisions; sharing one whoosh
+requires a scene-specific reason. These choices remain candidates until reviewed.
+
 Use isolated paper, click, sweep, snap, or landing sounds to support visible actions.
 Avoid turning recurring tonal effects into a musical backing track. No BPM analysis
 is required when the film has no musical bed. Inspect the waveform/envelope when a
@@ -135,6 +140,12 @@ sound's peak should match a landing rather than placing every file by its start 
 
 Keep source audio immutable. Synthesize or use reviewed assets, document the source,
 preserve license information, and follow the engine's gain and timing contracts.
+
+Never claim perceptual listening from waveform measurements, synchronized peaks
+or the existence of A/B exports. Record whether actual listening was possible
+and performed; if unavailable, disclose it and keep sound acceptance pending.
+Use the required shared Studio preview alongside the technical checks described
+in `AGENTS.md` and `docs/remotion-tools.md`.
 
 Creator rejected Nirox V13 effects as motor-like despite technical mix checks.
 Long noise sweeps repeated faster than their duration can overlap into a mechanical
